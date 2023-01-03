@@ -1,0 +1,5 @@
+manifest.attributes["pluginName"] = "sasa"
+    manifest.attributes["cashdeskPOSPlugin"] = "com.trc.app3.App"
+    manifest.attributes["cashDeskVersions"] = "com.trc.app3.App"
+    manifest.attributes["version"] = "2.13.4"
+    manifest.attributes["pluginVersion"] = "1.0"
