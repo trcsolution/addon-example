@@ -31,7 +31,8 @@ public class WebRequest {
         _config = config;
     }
 
-    public PromoResponse Request(ReceiptEntity receipt) throws IOException, InterruptedException {
+    // ArrayList<Object> refPromos=null
+    public PromoResponse Request(ReceiptEntity receipt,ArrayList<Integer> refPromos) throws IOException, InterruptedException {
         PromoRequest request = new PromoRequest();
         request.setItems(new ArrayList<PromoRequestItem>(
                 receipt.getSalesItems().stream().filter(a -> a.getMaterial() != null).map(item -> {
@@ -43,6 +44,7 @@ public class WebRequest {
                     return itm;
                 }).collect(Collectors.toList())));
         request.setTransactionNumber(receipt.getId());
+        request.setRefPromos(refPromos);
 
         // var ss=JSONObject.fromObject(request).toString();
         logger.info("-------------- REQUEST BEGIN-----------");

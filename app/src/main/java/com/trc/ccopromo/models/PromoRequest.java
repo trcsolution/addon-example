@@ -34,11 +34,11 @@ public class PromoRequest{
 		 this.coupons = coupons; } 
     ArrayList<String> coupons;
     // @JsonProperty("refPromos") 
-    public ArrayList<Object> getRefPromos() { 
+    public ArrayList<Integer> getRefPromos() { 
 		 return this.refPromos; } 
-    public void setRefPromos(ArrayList<Object> refPromos) { 
+    public void setRefPromos(ArrayList<Integer> refPromos) { 
 		 this.refPromos = refPromos; } 
-    ArrayList<Object> refPromos;
+    ArrayList<Integer> refPromos;
     
 }
 

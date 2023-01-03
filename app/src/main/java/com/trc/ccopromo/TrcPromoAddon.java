@@ -194,9 +194,26 @@ public class TrcPromoAddon extends BasePlugin {
         }
     }
 
+    @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveSalesItemByQuantity", where = PluginAt.POSITION.BEFORE)
+    public Object moveSalesItemByQuantityBefore(Object proxy, Object[] args, Object ret
+    // , StackTraceElement caller,Object ret1
+    )
+            throws BreakExecutionException, IOException, InterruptedException {
+                ReturnReceiptObject result = (ReturnReceiptObject) ret;
+            ReceiptEntity sourceReceipt = result.getSourceReceipt();
+            if(sourceReceipt.getSalesItems().stream().filter(a->a.getId().equals("PROMO_ADJUSTMENT")).findAny().isEmpty())
+            sourceReceipt.getSalesItems().remove(
+                sourceReceipt.getSalesItems().stream().filter(a->a.getId().equals("PROMO_ADJUSTMENT")).findFirst()
+                
+            );
+            
+
+
+                return result;
+            }
     @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveSalesItemByQuantity", where = PluginAt.POSITION.AFTER)
     public Object moveSalesItemByQuantity(Object proxy, Object[] args, Object ret, StackTraceElement caller)
-            throws BreakExecutionException {
+            throws BreakExecutionException, IOException, InterruptedException {
         logger.info("moveSalesItemByQuantity");
         
 
@@ -255,19 +272,19 @@ public class TrcPromoAddon extends BasePlugin {
         return result;
     }
 
-    @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveReturnedReceiptToCurrentReceipt", where = PluginAt.POSITION.AFTER)
-    public Object moveReturnedReceiptToCurrentReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller) throws BreakExecutionException {
-        logger.info("moveReturnedReceiptToCurrentReceipt");
-        ReceiptEntity result = (ReceiptEntity) ret;
-        if (args.length == 8) {
-            ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
-            logger.info("args {}", args);
-            var adjItems=receiptWithAdjustmentItems.getSalesItems().stream().filter(a->a.getId().equals("PROMO_ADJUSTMENT")).toArray();
-            logger.info(adjItems.toString()); 
-            // copyAdjustmentItems(receiptWithAdjustmentItems, result);
-        }
-        return result;
-    }
+    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveReturnedReceiptToCurrentReceipt", where = PluginAt.POSITION.AFTER)
+    // public Object moveReturnedReceiptToCurrentReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller) throws BreakExecutionException {
+    //     logger.info("moveReturnedReceiptToCurrentReceipt");
+    //     ReceiptEntity result = (ReceiptEntity) ret;
+    //     if (args.length == 8) {
+    //         ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
+    //         logger.info("args {}", args);
+    //         // var adjItems=receiptWithAdjustmentItems.getSalesItems().stream().filter(a->a.getId().equals("PROMO_ADJUSTMENT")).toArray();
+    //         // logger.info(adjItems.toString()); 
+    //         // copyAdjustmentItems(receiptWithAdjustmentItems, result);
+    //     }
+    //     return result;
+    // }
 
 
 }
