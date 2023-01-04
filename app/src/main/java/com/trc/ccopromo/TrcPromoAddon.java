@@ -272,19 +272,19 @@ public class TrcPromoAddon extends BasePlugin {
         return result;
     }
 
-    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveReturnedReceiptToCurrentReceipt", where = PluginAt.POSITION.AFTER)
-    // public Object moveReturnedReceiptToCurrentReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller) throws BreakExecutionException {
-    //     logger.info("moveReturnedReceiptToCurrentReceipt");
-    //     ReceiptEntity result = (ReceiptEntity) ret;
-    //     if (args.length == 8) {
-    //         ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
-    //         logger.info("args {}", args);
-    //         // var adjItems=receiptWithAdjustmentItems.getSalesItems().stream().filter(a->a.getId().equals("PROMO_ADJUSTMENT")).toArray();
-    //         // logger.info(adjItems.toString()); 
-    //         // copyAdjustmentItems(receiptWithAdjustmentItems, result);
-    //     }
-    //     return result;
-    // }
+    @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveReturnedReceiptToCurrentReceipt", where = PluginAt.POSITION.AFTER)
+    public Object moveReturnedReceiptToCurrentReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller) throws BreakExecutionException {
+        logger.info("moveReturnedReceiptToCurrentReceipt");
+        ReceiptEntity result = (ReceiptEntity) ret;
+        if (args.length == 8) {
+            ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
+            logger.info("args {}", args);
+            // var adjItems=receiptWithAdjustmentItems.getSalesItems().stream().filter(a->a.getId().equals("PROMO_ADJUSTMENT")).toArray();
+            // logger.info(adjItems.toString()); 
+            // copyAdjustmentItems(receiptWithAdjustmentItems, result);
+        }
+        return result;
+    }
 
 
 }
