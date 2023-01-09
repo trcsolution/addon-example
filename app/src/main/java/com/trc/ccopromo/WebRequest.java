@@ -35,7 +35,7 @@ public class WebRequest {
     public PromoResponse Request(ReceiptEntity receipt,ArrayList<Integer> refPromos) throws IOException, InterruptedException {
         PromoRequest request = new PromoRequest();
         request.setItems(new ArrayList<PromoRequestItem>(
-                receipt.getSalesItems().stream().filter(a -> a.getMaterial() != null).map(item -> {
+                receipt.getSalesItems().stream().filter(a -> !a.getStatus().equals("3") &&  a.getMaterial() != null).map(item -> {
                     var itm = new PromoRequestItem();
                     itm.setItemCode(item.getId());
                     itm.setQty(item.getQuantity().intValue());

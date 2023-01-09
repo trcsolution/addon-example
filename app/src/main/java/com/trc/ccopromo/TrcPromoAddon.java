@@ -6,16 +6,22 @@ package com.trc.ccopromo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sap.scco.ap.plugin.BasePlugin;
 import com.sap.scco.ap.plugin.BreakExecutionException;
+import com.sap.scco.ap.pos.dao.ReceiptManager;
 
 import org.eclipse.persistence.indirection.IndirectList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.sap.scco.ap.plugin.annotation.ListenToExit;
 import com.sap.scco.ap.plugin.annotation.PluginAt;
+import com.sap.scco.ap.plugin.annotation.PluginAt.POSITION;
+import com.sap.scco.ap.plugin.annotation.ui.JSInject;
 // import com.sap.scco.ap.plugin.annotation.ui.JSInject;
 import com.sap.scco.ap.pos.service.*;
+import com.sap.scco.ap.pos.service.ReceiptChangeNotifierPosService;
 import com.sap.scco.ap.pos.service.PosService;
 import com.sap.scco.ap.pos.service.ReturnSalesItemPosService;
+import com.sap.scco.ap.pos.service.impl.SalesItemPosServiceImpl;
+import com.sap.scco.ap.pos.util.ui.BroadcasterHolder;
 import com.sap.scco.ap.pos.service.impl.ReturnSalesItemPosServiceImpl;
 import com.trc.ccopromo.models.*;
 
@@ -90,6 +96,7 @@ public class TrcPromoAddon extends BasePlugin {
     private CalculationPosService calculationPosService;
     private SalesItemPosService salesItemPosService;
     private EntityFactory entiryFactiry;
+    static private  Boolean ignoreCalculation=false;
 
     @Override
     public String getId() {
@@ -109,31 +116,14 @@ public class TrcPromoAddon extends BasePlugin {
     @Override
     public void startup() {
         currentlyCalculating.set(false);
-        // EntityFactory.INSTANCE.
-        // logger.info("222222222222222");
-        // new ReceiptManager()
         this.dbSession = CDBSessionFactory.instance.createSession();
-        // this.priceDiscountManager = new PriceDiscountManager(dbSession);
         this.receiptManager = new ReceiptManager(dbSession);
-        // this.salesItemManager = new SalesItemManager(dbSession);
-        // this.materialPosService =
-        // ServiceFactory.INSTANCE.getOrCreateServiceInstance(MaterialPosService.class,
-        // dbSession);
         this.receiptPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(ReceiptPosService.class, dbSession);
-        this.calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,
-                dbSession);
-        this.salesItemPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(SalesItemPosService.class,
-                dbSession);
-
-        // priceDiscountManager.
-
-        // receiptManager.cancelSalesItem(null, null, null, null, INT, BOOLEAN)
-
+        this.calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,dbSession);
+        this.salesItemPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(SalesItemPosService.class,dbSession);
         super.startup();
-        // currentlyCalculating.set(false);
-
     }
-
+    
     @Override
     public boolean persistPropertiesToDB() {
         return true;
@@ -155,136 +145,216 @@ public class TrcPromoAddon extends BasePlugin {
         propConfig.put(SPECIAL_DISCOUNT_SERVICE_PASSWORD, PASSWORD);
         return propConfig;
     }
-
-    @PluginAt(pluginClass = ReceiptPosService.class, method = "voidReceipt", where = PluginAt.POSITION.BEFORE)
-    public void voidReceipt(Object proxy, Object[] args, StackTraceElement caller) {
-        logger.info("voidReceipt");
-        // currentlyCalculating.set(false);
-
+    //aggregateReceipt
+    //validateReceipt
+    public Boolean LockCalculation()
+    {
+        
+        return (currentlyCalculating.compareAndSet(false, true));
+    }
+    public void unlockCalculation()
+    {
+        currentlyCalculating.set(false);
     }
 
-    @PluginAt(pluginClass = ReceiptPosService.class, method = "addSalesItem", where = PluginAt.POSITION.AFTER)
-    public void addSalesItem(Object proxy, Object[] args, Object objItem, Object obj)
-            throws IOException, InterruptedException {
-        ReceiptEntity receipt = (ReceiptEntity) args[0];
-        TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService,
-                dbSession);
-        transactionLogic.CalculatePromotios(receipt);
-    }
+    @PluginAt(pluginClass = CalculationPosService.class, method = "calculate", where = PluginAt.POSITION.BEFORE)
+    public void applyPromotions(Object proxy, Object[] args, StackTraceElement caller) throws InconsistentReceiptStateException {
+        // logger.info("CalculationPosService.calculate");
+        try {
+            
+            if(LockCalculation()) {
+                ReceiptEntity receipt = (ReceiptEntity) args[0];
+                if (args.length == 4 &&
+                        ReceiptEntity.Status.NEW.equals(receipt.getStatus()) && receipt.getPaymentItems().isEmpty()) {
+                    // ReceiptHelper.markSalesItemsAsChanged(receipt);
+                    // first recalculate to make sure its not strange stuff in here
+                    // calculationPosService.recalculateReceipt(receipt);
 
-    @PluginAt(pluginClass = ReceiptPosService.class, method = "updateSalesItem", where = PluginAt.POSITION.AFTER)
-    public void updateSalesItem(Object proxy, Object[] args, StackTraceElement caller, Object obj)
-            throws IOException, InterruptedException {
-        logger.info("updateSalesItem - before");
-        ReceiptEntity receipt = (ReceiptEntity) args[0];
-        TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService,
-                dbSession);
-        transactionLogic.CalculatePromotios(receipt);
-    }
+                    // if(ignoreCalculation)
+                    // {
+                    //     ignoreCalculation=!ignoreCalculation;
+                    //     unlockCalculation();
+                    //     return;
+                    // }
+                                // calculate(receipt, false);
+                   logger.info("---------------- Calculation -------------------");
+                       TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+                    transactionLogic.CalculatePromotios(receipt);
+                
 
-    @PluginAt(pluginClass = ReturnSalesItemPosService.class, method = "voidSalesItem", where = PluginAt.POSITION.AFTER)
-    public void voidSalesItem(ReturnSalesItemPosServiceImpl proxy, Object[] args, Object objItem, Object obj)
-            throws IOException, InterruptedException {
-
-        if (((Object) args[0]).getClass() == ReceiptEntity.class) {
-            ReceiptEntity receipt = (ReceiptEntity) args[0];
-            TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService,
-                    dbSession);
-            transactionLogic.CalculatePromotios(receipt);
+                    // ReceiptHelper.markSalesItemsAsChanged(receipt);
+                } else if(args.length == 4 && !ReceiptEntity.Status.NEW.equals(receipt.getStatus())){
+                    logger.info("This is not a new receipt, not calculating discounts");
+                }
+                unlockCalculation();
+                // currentlyCalculating.set(false);
+                // logger.info("CalculationPosService.calculate - end");
+            } else {
+                // logger.info("Calculation run missed");
+            }
+        } catch (Exception e) {
+            unlockCalculation();
+            logger.error("ERROR CALCULATING", e);
+            // currentlyCalculating.set(false);
         }
     }
 
-    @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveSalesItemByQuantity", where = PluginAt.POSITION.BEFORE)
-    public Object moveSalesItemByQuantityBefore(Object proxy, Object[] args, Object ret
-    // , StackTraceElement caller,Object ret1
-    )
-            throws BreakExecutionException, IOException, InterruptedException {
-                ReturnReceiptObject result = (ReturnReceiptObject) ret;
-            ReceiptEntity sourceReceipt = result.getSourceReceipt();
-            if(sourceReceipt.getSalesItems().stream().filter(a->a.getId().equals("PROMO_ADJUSTMENT")).findAny().isEmpty())
-            sourceReceipt.getSalesItems().remove(
-                sourceReceipt.getSalesItems().stream().filter(a->a.getId().equals("PROMO_ADJUSTMENT")).findFirst()
+
+    // @PluginAt(pluginClass = CalculationPosService.class, method = "calculate", where = PluginAt.POSITION.BEFORE)
+    // public void applyPromotions(Object proxy, Object[] args, StackTraceElement caller) throws InconsistentReceiptStateException {
+    //     // logger.info("CalculationPosService.calculate");
+    //     try {
+    //         // if (currentlyCalculating.compareAndSet(false, true)) {
+    //         if(LockCalculation()) {
+    //             ReceiptEntity receipt = (ReceiptEntity) args[0];
+    //             if (args.length == 4 &&
+    //                     ReceiptEntity.Status.NEW.equals(receipt.getStatus()) && receipt.getPaymentItems().isEmpty()) {
+    //                 ReceiptHelper.markSalesItemsAsChanged(receipt);
+    //                 // first recalculate to make sure its not strange stuff in here
+    //                 calculationPosService.recalculateReceipt(receipt);
+    //                // calculate(receipt, false);
+    //                logger.info("---------------- Calculation -------------------");
+    //                    TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+    //                 transactionLogic.CalculatePromotios(receipt);
                 
-            );
-            
+
+    //                 ReceiptHelper.markSalesItemsAsChanged(receipt);
+    //             } else if(args.length == 4 && !ReceiptEntity.Status.NEW.equals(receipt.getStatus())){
+    //                 logger.info("This is not a new receipt, not calculating discounts");
+    //             }
+    //             unlocakCalculation();
+    //             // currentlyCalculating.set(false);
+    //             // logger.info("CalculationPosService.calculate - end");
+    //         } else {
+    //             // logger.info("Calculation run missed");
+    //         }
+    //     } catch (Exception e) {
+    //         unlocakCalculation();
+    //         logger.error("ERROR CALCULATING", e);
+    //         // currentlyCalculating.set(false);
+    //     }
+    // }
 
 
-                return result;
-            }
+    // @PluginAt(pluginClass = ReceiptPosService.class, method = "voidReceipt", where = PluginAt.POSITION.BEFORE)
+    // public void voidReceipt(Object proxy, Object[] args, StackTraceElement caller) {
+    //     logger.info("voidReceipt");
+        
+    //     // currentlyCalculating.set(false);
+
+    // }
+
+    // @PluginAt(pluginClass = ReceiptPosService.class, method = "aggregateReceipt", where = PluginAt.POSITION.AFTER)
+    // public void aggregateReceipt(Object proxy, Object[] args, Object objItem, Object obj) {
+    //     logger.info("aggregateReceipt");
+        
+    //     // currentlyCalculating.set(false);
+
+    // }
+    // @PluginAt(pluginClass = ReceiptPosService.class, method = "validateReceipt", where = PluginAt.POSITION.AFTER)
+    // public void validateReceipt(Object proxy, Object[] args, Object objItem, Object obj) {
+    //     logger.info("validateReceipt");
+    //     ReceiptEntity receipt = (ReceiptEntity) args[0];
+    //     receiptManager.update(receipt);
+    //     // calculationPosService.update()
+        
+    //     // currentlyCalculating.set(false);
+
+    // }
+
+
+    // @PluginAt(pluginClass = ReceiptPosService.class, method = "addSalesItem", where = PluginAt.POSITION.AFTER)
+    // public void addSalesItem(Object proxy, Object[] args, Object objItem, Object obj)
+    //         throws IOException, InterruptedException {
+    //     ReceiptEntity receipt = (ReceiptEntity) args[0];
+    //     TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+    //     transactionLogic.CalculatePromotios(receipt);
+    //     // sendMessageToUi("sasa","description");
+    // }
+
+    // @PluginAt(pluginClass = ReceiptPosService.class, method = "updateSalesItem", where = PluginAt.POSITION.AFTER)
+    // public void updateSalesItem(Object proxy, Object[] args, StackTraceElement caller, Object obj)
+    //         throws IOException, InterruptedException {
+    //     ReceiptEntity receipt = (ReceiptEntity) args[0];
+    //     TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+    //     transactionLogic.CalculatePromotios(receipt);
+    // }
+    
+    // void SalesItem
+    // @PluginAt(pluginClass = ReceiptChangeNotifierPosService.class, method = "notifyListenersOnSalesItemVoided", where = PluginAt.POSITION.AFTER)
+    // public void notifyListenersOnSalesItemVoided(Object proxy, Object[] args, Object objItem, Object obj)
+    //         throws IOException, InterruptedException {
+    //             if(args.length>1)
+    //                 if (((Object) args[1]).getClass().equals(SalesItemEntity.class)) 
+    //             {
+    //                 TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+    //                 transactionLogic.CalculatePromotios(((SalesItemEntity)args[1]).getReceipt());
+    //             }
+    // }
+    
+
+    
+    
+
+    
     @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveSalesItemByQuantity", where = PluginAt.POSITION.AFTER)
     public Object moveSalesItemByQuantity(Object proxy, Object[] args, Object ret, StackTraceElement caller)
             throws BreakExecutionException, IOException, InterruptedException {
-        logger.info("moveSalesItemByQuantity");
-        
-
         ReturnReceiptObject result = (ReturnReceiptObject) ret;
         ReceiptEntity targetReceipt = result.getIndividualItemsReceipt();
         ReceiptEntity sourceReceipt = result.getSourceReceipt();
-
         if (targetReceipt != null) {
-            TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService,
-                dbSession);
-        transactionLogic.PickUpPromoTransaction(result);
-
-            // logger.info("moveSalesItemByQuantity");
-            // var _adjustmentItem=targetReceipt.getSalesItems().stream().filter(a->a.getId().equals("PROMO_ADJUSTMENT")).findFirst();
-            // if(_adjustmentItem!=null)
-            //     if(!_adjustmentItem.isEmpty())
-            // {
-            //     SalesItemEntity adjustmentItem=_adjustmentItem.get();
-            //     // var qty=targetReceipt.getSalesItems().get(0).getQuantity();
-            //     var finalPrice=adjustmentItem.getGrossAmount();
-            //     var finalPrice1=BigDecimal.valueOf(targetReceipt.getSalesItems().stream().filter(a->!a.getId().equals("PROMO_ADJUSTMENT")).
-            //     mapToDouble(a->a.getGrossAmount().doubleValue()).sum());
-            //     finalPrice=finalPrice.add(finalPrice1);
-            //     // finalPrice=finalPrice.add(BigDecimal.ONE);
-            //     // finalPrice+=BigDecimal.valueOf(BigDecimal.valueOf(finalPrice.doubleValue()+1) );
-            //     // finalPrice=
-            //     adjustmentItem.setUnitNetAmount(finalPrice);
-            //     adjustmentItem.setUnitNetAmountOrigin(finalPrice);
-            //     adjustmentItem.setUnitGrossAmount(finalPrice);
-            //     adjustmentItem.setUnitGrossAmountOrigin(finalPrice);
-            //     calculationPosService.calculate(targetReceipt, BaseEntity.EntityActions.CHECK_CONS);
-
-                
-            //     // adjustmentItem.setQuantity(BigDecimal.valueOf( adjustmentItem.getQuantity().doubleValue()+qty.doubleValue()));
-            //     return result;
-            // }
-            
-
-            // SalesItemEntity adjustmentItem=com.sap.scco.ap.pos.dao.EntityFactory.INSTANCE.createSpecialSalesItemEntity("Promo Adjustment", BigDecimal.valueOf(10), 
-            // targetReceipt.getSalesItems().get(0).getTaxRateTypeCode(), null);
-            // // adjustmentItem.setGrossAmount(null);
-            // // BigDecimal finalPrice = BigDecimal.valueOf(-5);
-            // var finalPrice=BigDecimal.valueOf(targetReceipt.getSalesItems().stream().mapToDouble(a->a.getGrossAmount().doubleValue()).sum());
-            // // price != null ? price.negate() : BigDecimal.ZERO;
-            //     adjustmentItem.setUnitNetAmount(finalPrice);
-            //     adjustmentItem.setUnitNetAmountOrigin(finalPrice);
-            //     adjustmentItem.setUnitGrossAmount(finalPrice);
-            //     adjustmentItem.setUnitGrossAmountOrigin(finalPrice);
-            //     adjustmentItem.setUnitPriceChanged(true);
-            //     adjustmentItem.setId("PROMO_ADJUSTMENT");
-            //     adjustmentItem.setQuantity(BigDecimal.ONE);
-            //     targetReceipt.addSalesItem(adjustmentItem);
-            //     calculationPosService.calculate(targetReceipt, BaseEntity.EntityActions.CHECK_CONS);
-            // addAdjustmentItems(result.getSourceReceipt(), targetReceipt);
+            TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+            transactionLogic.PickUpPromoTransaction(result);
         }
         return result;
     }
 
     @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveReturnedReceiptToCurrentReceipt", where = PluginAt.POSITION.AFTER)
     public Object moveReturnedReceiptToCurrentReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller) throws BreakExecutionException {
-        logger.info("moveReturnedReceiptToCurrentReceipt");
         ReceiptEntity result = (ReceiptEntity) ret;
         if (args.length == 8) {
             ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
-            logger.info("args {}", args);
-            // var adjItems=receiptWithAdjustmentItems.getSalesItems().stream().filter(a->a.getId().equals("PROMO_ADJUSTMENT")).toArray();
-            // logger.info(adjItems.toString()); 
-            // copyAdjustmentItems(receiptWithAdjustmentItems, result);
+            // if(LockCalculation())
+            {
+                TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+                transactionLogic.copyAdjustmentItems(receiptWithAdjustmentItems, result);
+                // unlockCalculation();
+                // ignoreCalculation=true;
+            }
         }
         return result;
     }
+
+    // @PluginAt(pluginClass=IReceiptManager.class, method="voidSalesItem", where=POSITION.AFTER)
+	// public void pluginAtAfterExample(Object proxy, Object[] args, Object returnValue, StackTraceElement callStack) {
+	// 	//Your code
+    //     logger.info("ok");
+	// }
+
+    @JSInject(targetScreen="sales")
+	public String injectJSToSalesScreenExample(){
+		return "alert(\"Hello World from Plugin!\");";
+	}
+    @PluginAt(pluginClass=IReceiptManager.class, method="finishReceipt", where=POSITION.BEFORE)
+	public void pluginAtBeforeExample(Object proxy, Object[] args, StackTraceElement callStack) throws BreakExecutionException {
+		//Your code
+        logger.info("ok");
+	}
+    
+    private void sendMessageToUi(String titleKey, String titleMessage) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("title", titleKey);
+        jsonObject.put("message", titleMessage);
+        BroadcasterHolder.INSTANCE.getBroadcaster().broadcastPluginEventForPath("SHOW_MESSAGE_BOX", jsonObject);    
+    }
+
+	
+	@PluginAt(pluginClass=IReceiptManager.class, method="finishReceipt", where=POSITION.AFTER)
+	public void pluginAtAfterExample(Object proxy, Object[] args, Object returnValue, StackTraceElement callStack) {
+		//Your code
+        logger.info("ok");
+	}
 
 
 }
