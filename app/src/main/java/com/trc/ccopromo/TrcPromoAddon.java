@@ -305,11 +305,12 @@ public class TrcPromoAddon extends BasePlugin {
         ReceiptEntity sourceReceipt = result.getSourceReceipt();
         if (targetReceipt != null) {
             TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-            transactionLogic.PickUpPromoTransaction(result);
+            transactionLogic.PickUpPromoLine(result);
+            // PickUpPromoTransaction(result);
         }
         return result;
     }
-
+    
     @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveReturnedReceiptToCurrentReceipt", where = PluginAt.POSITION.AFTER)
     public Object moveReturnedReceiptToCurrentReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller) throws BreakExecutionException {
         ReceiptEntity result = (ReceiptEntity) ret;
@@ -325,6 +326,48 @@ public class TrcPromoAddon extends BasePlugin {
         }
         return result;
     }
+    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "startReturn", where = PluginAt.POSITION.AFTER)
+    // public com.sap.scco.ap.returnreceipt.ReturnReceiptObject startReturn(Object proxy, Object[] args, com.sap.scco.ap.returnreceipt.ReturnReceiptObject ret, Object caller) throws BreakExecutionException {
+    //     return ret;
+    // }
+    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "returnIndividualArticles", where = PluginAt.POSITION.BEFORE)
+    // public com.sap.scco.ap.returnreceipt.ReturnReceiptObject returnIndividualArticles(Object proxy, Object[] args, Object obj) throws BreakExecutionException {
+    //     return null;
+    // }
+    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "returnIndividualArticles", where = PluginAt.POSITION.AFTER)
+    // public com.sap.scco.ap.returnreceipt.ReturnReceiptObject returnIndividualArticles(Object proxy, Object[] args, com.sap.scco.ap.returnreceipt.ReturnReceiptObject ret, Object caller) throws BreakExecutionException {
+    //     return null;
+    // }
+    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "startReturn", where = PluginAt.POSITION.AFTER)
+    // public com.sap.scco.ap.returnreceipt.ReturnReceiptObject startReturn(Object proxy, Object[] args, com.sap.scco.ap.returnreceipt.ReturnReceiptObject ret, Object caller) throws BreakExecutionException {
+    // // public com.sap.scco.ap.returnreceipt.ReturnReceiptObject startReturn(Object proxy, Object[] args, Object ret, Object ret1, Object ret2) throws BreakExecutionException {
+    //     var receipt=ret.getSourceReceipt();
+    //     var salesItems=receipt.getSalesItems();
+    //     var salesItem=salesItems.get(0);
+    //     salesItem.setGrossAmount(BigDecimal.valueOf(20));
+
+    //     salesItem.setPercentageDiscount(false);
+    //     salesItem.setDiscountAmount(BigDecimal.valueOf(0));
+    //     salesItem.setDiscountPurposeCode(com.trc.ccopromo.models.Constants.PROMO_DISCOUNT_CODE);
+    //     salesItem.setMarkChanged(true);
+    //     salesItem.setItemDiscountChanged(true);
+    //     salesItem.setDiscountManuallyChanged(true);
+
+    //     calculationPosService.calculate(receipt, BaseEntity.EntityActions.CHECK_CONS);
+    //     UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, receipt);
+    //     // ReceiptEntity result = (ReceiptEntity) ret;
+    //     // if (args.length == 8) {
+    //         // ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
+    //         // if(LockCalculation())
+    //         // {
+    //             // TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+    //             // transactionLogic.copyAdjustmentItems(receiptWithAdjustmentItems, result);
+    //             // unlockCalculation();
+    //             // ignoreCalculation=true;
+    //         // }
+    //     // }
+    //     return ret;
+    // }
 
     // @PluginAt(pluginClass=IReceiptManager.class, method="voidSalesItem", where=POSITION.AFTER)
 	// public void pluginAtAfterExample(Object proxy, Object[] args, Object returnValue, StackTraceElement callStack) {
@@ -350,11 +393,11 @@ public class TrcPromoAddon extends BasePlugin {
     }
 
 	
-	@PluginAt(pluginClass=IReceiptManager.class, method="finishReceipt", where=POSITION.AFTER)
-	public void pluginAtAfterExample(Object proxy, Object[] args, Object returnValue, StackTraceElement callStack) {
-		//Your code
-        logger.info("ok");
-	}
+	// @PluginAt(pluginClass=IReceiptManager.class, method="finishReceipt", where=POSITION.AFTER)
+	// public void pluginAtAfterExample(Object proxy, Object[] args, Object returnValue, StackTraceElement callStack) {
+	// 	//Your code
+    //     logger.info("ok");
+	// }
 
 
 }

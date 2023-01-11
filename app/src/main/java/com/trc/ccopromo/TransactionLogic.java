@@ -145,6 +145,71 @@ public class TransactionLogic {
         }
         return AdjustItemChanging;
     }
+    public void PickUpPromoLine(ReturnReceiptObject returnReciept) throws IOException, InterruptedException
+    {
+        ReceiptEntity targetReceipt = returnReciept.getIndividualItemsReceipt();
+        ReceiptEntity sourceReceipt = returnReciept.getSourceReceipt();
+        ReceiptEntity actualOriginalReceipt = LoadReceipt(returnReciept.getSourceReceipt().getId());
+
+
+        var refPromos=new ArrayList<Integer>();
+        actualOriginalReceipt.getSalesItems().stream().forEach(a->
+        {
+            var addField=a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID);
+            if(addField!=null)
+                refPromos.add(Integer.valueOf(addField.getValue()));
+        });
+        
+
+        if(!refPromos.isEmpty())
+        {
+            var promos = RequestPromo(sourceReceipt,refPromos);
+
+            targetReceipt.getSalesItems().forEach(salesItemEntry->{
+
+                BigDecimal actualOrigAmount=BigDecimal.valueOf(actualOriginalReceipt.getSalesItems().stream()
+                                            .filter(a->a.getId().equals(salesItemEntry.getId()))
+                                                .mapToDouble(a->a.getGrossAmount().subtract(a.getDiscountAmount()).doubleValue()).sum());
+
+                BigDecimal sourceAmount=BigDecimal.valueOf(sourceReceipt.getSalesItems().stream()
+                                            .filter(a->a.getId().equals(salesItemEntry.getId()))
+                                                .mapToDouble(a->a.getGrossAmount().doubleValue()).sum());
+                BigDecimal targetAmount=salesItemEntry.getGrossAmount();
+                BigDecimal newDiscount=BigDecimal.ZERO;
+                var _disc=promos.itemDiscounts.stream().filter(a->a.itemCode.equals(salesItemEntry.getId())).findFirst();
+                if(!_disc.isEmpty())
+                    newDiscount=BigDecimal.valueOf(_disc.get().discount);
+                
+                var promoAdjuction=actualOrigAmount
+                        .subtract(sourceAmount.
+                            subtract(newDiscount)).
+                                subtract(targetAmount);
+                SetLineDiscount(salesItemEntry, promoAdjuction.abs());
+                salesItemEntry.setUnitPriceChanged(true);
+                logger.info(promoAdjuction.toString());
+
+                var _sourceSalesItem=sourceReceipt.getSalesItems().stream()
+                                            .filter(a->a.getId().equals(salesItemEntry.getId())).findFirst();
+                if(!_sourceSalesItem.isEmpty())
+                {
+                    
+                    var sourceSalesItem=_sourceSalesItem.get();
+                    SetLineDiscount(sourceSalesItem, newDiscount);
+                    sourceSalesItem.setUnitPriceChanged(true);
+                }
+
+
+            });
+            calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);
+            UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, targetReceipt);
+
+            calculationPosService.calculate(sourceReceipt, EntityActions.CHECK_CONS);
+            UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, sourceReceipt);
+
+        }
+
+    }
+
     public void PickUpPromoTransaction(ReturnReceiptObject returnReciept) throws IOException, InterruptedException
     {
         ReceiptEntity targetReceipt = returnReciept.getIndividualItemsReceipt();
@@ -229,66 +294,12 @@ public class TransactionLogic {
 
 
 
-
         } catch (Exception e) {
         // TODO Auto-generated catch block
          e.printStackTrace();
          }
     }
-    public void CalculatePromotios2(final ReceiptEntity receipt) throws IOException, InterruptedException {
-        logger.info("CalculatePromotios");
-        // new Thread(new Runnable() {
-
-        // @Override
-        // public void run() {
-
-        Boolean hasdiscountChanges = Boolean.FALSE;
-        try {
-            var promos = RequestPromo(receipt,null);
-            for (var salesItem : receipt.getSalesItems()) {
-
-                var promoitem = promos.itemDiscounts.stream().filter(a -> a.itemCode.equals(salesItem.getId()))
-                        .findFirst();
-
-                if (promoitem != null)
-                    if (!promoitem.isEmpty()) {
-                        hasdiscountChanges = Boolean.TRUE;
-                        SetLineDiscount(salesItem, BigDecimal.valueOf(promoitem.get().discount));
-                        setAdditionalField(salesItem, com.trc.ccopromo.models.Constants.PROMO_ID,
-                                Integer.toString(promoitem.get().promoId));
-                        setAdditionalField(salesItem, com.trc.ccopromo.models.Constants.PROMO_NAME,
-                                promoitem.get().promoName);
-                        continue;
-                    }
-
-                AdditionalFieldEntity promoid = salesItem
-                        .getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID);
-                if (promoid != null) {
-                    resetDiscountToSalesItem(salesItem);
-                    setAdditionalField(salesItem, com.trc.ccopromo.models.Constants.PROMO_ID,null);
-                        setAdditionalField(salesItem, com.trc.ccopromo.models.Constants.PROMO_NAME,null);
-                    hasdiscountChanges = Boolean.TRUE;
-                }
-            }
-            // }
-
-        } catch (IOException | InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        logger.info("-------Thread-------");
-        // if (hasdiscountChanges) 
-        {
-            calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
-            // calculationPosService.recalculateReceipt(receipt);
-        //    receiptManager.update(receipt);
-            // ReceiptHelper.markSalesItemsAsChanged(receipt);
-            UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, receipt);
-        }
-        // }
-        // }).start();
-    }
-
+    
     private void SetLineDiscount(SalesItemEntity salesItem,BigDecimal discount){
     // Optional<ItemDiscount> promoitem) {
         salesItem.setPercentageDiscount(false);
