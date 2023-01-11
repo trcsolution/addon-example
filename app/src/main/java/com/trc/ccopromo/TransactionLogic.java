@@ -70,7 +70,7 @@ public class TransactionLogic {
         additionalField2.setValue(value);
     }
 
-    ReceiptEntity LoadReceipt(String id)
+    public  ReceiptEntity LoadReceipt(String id)
     {
         CDBSession localSession = CDBSessionFactory.instance.createSession();
         ReceiptPosService localReceiptPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(ReceiptPosService.class, localSession);
@@ -81,7 +81,8 @@ public class TransactionLogic {
     {
         reciept.getSalesItems().forEach(salesItem->
         {
-            resetDiscountToSalesItem(salesItem);
+            if(salesItem.getStatus()!="3")
+                resetDiscountToSalesItem(salesItem);
         });
         calculationPosService.calculate(reciept, EntityActions.CHECK_CONS);
         UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, reciept);
@@ -145,22 +146,27 @@ public class TransactionLogic {
         }
         return AdjustItemChanging;
     }
+
+    public  ArrayList<java.lang.Integer> getRefPromos(ReceiptEntity receipt)
+    {
+        var rslt=new ArrayList<java.lang.Integer>();
+        receipt.getSalesItems().stream().forEach(a->
+        {
+            var addField=a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID);
+            if(addField!=null)
+            rslt.add(java.lang.Integer.valueOf(addField.getValue()));
+        });
+        return rslt;
+
+    }
     public void PickUpPromoLine(ReturnReceiptObject returnReciept) throws IOException, InterruptedException
     {
         ReceiptEntity targetReceipt = returnReciept.getIndividualItemsReceipt();
         ReceiptEntity sourceReceipt = returnReciept.getSourceReceipt();
         ReceiptEntity actualOriginalReceipt = LoadReceipt(returnReciept.getSourceReceipt().getId());
-
-
-        var refPromos=new ArrayList<Integer>();
-        actualOriginalReceipt.getSalesItems().stream().forEach(a->
-        {
-            var addField=a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID);
-            if(addField!=null)
-                refPromos.add(Integer.valueOf(addField.getValue()));
-        });
         
 
+        var refPromos=getRefPromos(actualOriginalReceipt);
         if(!refPromos.isEmpty())
         {
             var promos = RequestPromo(sourceReceipt,refPromos);
@@ -300,7 +306,7 @@ public class TransactionLogic {
          }
     }
     
-    private void SetLineDiscount(SalesItemEntity salesItem,BigDecimal discount){
+    public void SetLineDiscount(SalesItemEntity salesItem,BigDecimal discount){
     // Optional<ItemDiscount> promoitem) {
         salesItem.setPercentageDiscount(false);
         salesItem.setDiscountAmount(discount);
