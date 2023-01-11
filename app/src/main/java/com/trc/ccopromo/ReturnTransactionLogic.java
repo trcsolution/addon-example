@@ -119,45 +119,26 @@ public class ReturnTransactionLogic {
     public void moveReturnedReceiptToCurrentReceipt(ReceiptEntity sourcereceipt,ReceiptEntity targetReceipt)
     {
         targetReceipt.getSalesItems().stream().filter(a->a.getMaterial()!=null && !a.getStatus().equals("3") ).forEach(salesItem->{
-            var parentitem=salesItem.getReferenceSalesItem();
-            
-            var discount=salesItem.getDiscountAmount();
-            salesItem.setDiscountPercentage(BigDecimal.ZERO);
-                salesItem.setPercentageDiscount(false);
-                salesItem.setDiscountAmount(BigDecimal.ZERO);
-                salesItem.setDiscountPurposeCode(com.trc.ccopromo.models.Constants.PROMO_DISCOUNT_CODE);
-                salesItem.setMarkChanged(true);
-                salesItem.setItemDiscountChanged(true);
-                salesItem.setDiscountManuallyChanged(true);
-
-
-                salesItem.setUnitNetAmount(parentitem.getUnitNetAmount());
-                salesItem.setUnitGrossAmount(parentitem.getUnitGrossAmount());
-
-                transactionlogic.SetLineDiscount(salesItem,discount.abs());
-
-                // salesItem.setUnitNetAmount(unitNewAmount);
-                // salesItem.setUnitNetAmountOrigin(unitNewAmount);
-
-                // salesItem.setUnitGrossAmount(unitGrossAmount);
-                // salesItem.setUnitGrossAmountOrigin(unitGrossAmount);
-
-                var grossAmount=parentitem.getUnitNetAmount().multiply(salesItem.getQuantity()).subtract(discount.abs());
-                salesItem.setUnitPriceChanged(true);
-                salesItem.setGrossAmount(grossAmount);
-                salesItem.setNetAmount(grossAmount);
-                salesItem.setDiscountAmountFromReceipt(BigDecimal.ZERO);
-                
-
-
-                // salesItem.setDiscountable(false);
-
-            salesItem.setUnitPriceChanged(true);
-            salesItem.setReferenceSalesItem(null);
-
-            
+            BigDecimal descountAmount=salesItem.getDiscountAmount();
+             var refSalesItem=salesItem.getReferenceSalesItem();
+             var refUnitPrice=refSalesItem.getUnitGrossAmount();
+             var qty=salesItem.getQuantity();
+             BigDecimal amount=refUnitPrice.multiply(qty).subtract(descountAmount).divide(qty);
+             var unitGrossAmount=amount;
+             var unitNetAmount=amount;
+             salesItem.setReferenceSalesItem(null);
+             salesItem.setUnitNetAmount(unitNetAmount);
+             salesItem.setUnitGrossAmount(unitGrossAmount);
+             transactionlogic.SetLineDiscount(salesItem,BigDecimal.ZERO);
+              salesItem.setUnitPriceChanged(true);
         });
-        calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);
+
+        // sourcereceipt.getSalesItems().stream().forEach(a->{
+        //     transactionlogic.resetDiscountToSalesItem(a);
+            
+        // });
+        // receiptManager.update(sourcereceipt);
+
 
     }
 }
