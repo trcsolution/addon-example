@@ -110,7 +110,7 @@ public class TrcPromoAddon extends BasePlugin {
 
     @Override
     public String getVersion() {
-        return "2.0.0";
+        return "2.0.1";
     }
 
     @Override
@@ -204,6 +204,7 @@ public class TrcPromoAddon extends BasePlugin {
             TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
             ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
 
+            // ReceiptEntity receipt0 = (ReceiptEntity) args[0];
             logic.moveReturnedReceiptToCurrentReceipt(receiptWithAdjustmentItems, result);
         }
         return result;

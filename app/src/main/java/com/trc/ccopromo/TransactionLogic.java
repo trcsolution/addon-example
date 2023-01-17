@@ -263,48 +263,64 @@ public class TransactionLogic {
         }
     }
 
-    
+    public void ResetSalesItems(final ReceiptEntity receipt)
+    {
+        receipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3")).forEach(salesItem->
+                {
+                    SetLineDiscount(salesItem,BigDecimal.ZERO);
+                    // salesItem.setUnitPriceChanged(true);
+                });
+    }
     public void CalculatePromotios(final ReceiptEntity receipt) throws IOException, InterruptedException {
-        logger.info("CalculatePromotios");
-        Boolean hasdiscountChanges = Boolean.FALSE;
         try {
+            ResetSalesItems(receipt);
             var promos = RequestPromo(receipt,null);
-            for (var salesItem : receipt.getSalesItems()) {
-                if(salesItem.getMaterial()==null)
-                    continue;
-
-                var promoitem = promos.itemDiscounts.stream().filter(a -> a.itemCode.equals(salesItem.getId()))
-                        .findFirst();
-                
-
-                if (promoitem != null)
-                    if (!promoitem.isEmpty()) {
-                        hasdiscountChanges = Boolean.TRUE;
-                        SetLineDiscount(salesItem, BigDecimal.valueOf(promoitem.get().discount));
-                        setAdditionalField(salesItem, com.trc.ccopromo.models.Constants.PROMO_ID,
-                                Integer.toString(promoitem.get().promoId));
-                        setAdditionalField(salesItem, com.trc.ccopromo.models.Constants.PROMO_NAME,
-                                promoitem.get().promoName);
-                        continue;
+            if(promos!=null)
+                if(promos.itemDiscounts!=null)
+                    if(!promos.itemDiscounts.isEmpty())
+            {
+                    for(var discountItem:promos.itemDiscounts)
+                    {
+                        BigDecimal discount=BigDecimal.valueOf(discountItem.discount);
+                        var lines=receipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3") && a.getId().equals(discountItem.itemCode)).map(a->a.getExternalId()).toArray(String[]::new);
+                        discount = UpdateLines(receipt, discount, lines);
                     }
-
-                AdditionalFieldEntity promoid = salesItem
-                        .getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID);
-                if (promoid != null) {
-                    resetDiscountToSalesItem(salesItem);
-                    setAdditionalField(salesItem, com.trc.ccopromo.models.Constants.PROMO_ID,null);
-                    setAdditionalField(salesItem, com.trc.ccopromo.models.Constants.PROMO_NAME,null);
-                    hasdiscountChanges = Boolean.TRUE;
-                }
             }
-
-
 
         } catch (Exception e) {
         // TODO Auto-generated catch block
          e.printStackTrace();
          }
     }
+    private BigDecimal UpdateLines(ReceiptEntity receipt, BigDecimal discount, String[] lines) {
+        for(String id : lines)
+        {
+            var salesItem=receipt.getSalesItems().stream().filter(a->a.getExternalId().equals(id)).findFirst().get();
+            if(discount.compareTo(salesItem.getGrossAmount())<=0)
+            {
+                SetLineDiscount(salesItem,discount);
+                // salesItem.setUnitPriceChanged(true);
+
+                discount=BigDecimal.ZERO;
+                break;
+            }
+            else
+            {
+                discount=discount.subtract(salesItem.getGrossAmount());
+                if(discount.compareTo(BigDecimal.ZERO)<0)
+                    discount=BigDecimal.ZERO;
+                 
+                SetLineDiscount(salesItem,salesItem.getGrossAmount());
+            // salesItem.setUnitPriceChanged(true);
+
+                // salesItem.setUnitPriceChanged(true);
+            }
+        }
+        return discount;
+    }
+
+    
+    
     
     public void SetLineDiscount(SalesItemEntity salesItem,BigDecimal discount){
     // Optional<ItemDiscount> promoitem) {
@@ -318,10 +334,10 @@ public class TransactionLogic {
 
     public void resetDiscountToSalesItem(SalesItemEntity salesItem) {
 
-        if (salesItem.getDiscountAmount().compareTo(BigDecimal.ZERO) != 0) {
+        // if (salesItem.getDiscountAmount().compareTo(BigDecimal.ZERO) != 0) {
             SetLineDiscount(salesItem,BigDecimal.ZERO);
             salesItem.setUnitPriceChanged(true);
-        }
+        // }
     }
 
     public PromoResponse RequestPromo(ReceiptEntity _transaction,ArrayList<Integer> refPromos) throws IOException, InterruptedException {

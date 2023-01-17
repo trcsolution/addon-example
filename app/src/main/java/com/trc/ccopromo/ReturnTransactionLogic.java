@@ -59,12 +59,17 @@ public class ReturnTransactionLogic {
         targetReceipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3")).forEach(salesItem->
         {
             transactionlogic.SetLineDiscount(salesItem,BigDecimal.ZERO);
+            salesItem.setNote("111");
+
             salesItem.setUnitPriceChanged(true);
         });
 
         sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3")).forEach(salesItem->
         {
             transactionlogic.SetLineDiscount(salesItem,BigDecimal.ZERO);
+            salesItem.setNote("111");
+
+
             salesItem.setUnitPriceChanged(true);
         });
 
@@ -96,7 +101,9 @@ public class ReturnTransactionLogic {
             if(discount.compareTo(salesItem.getGrossAmount())<=0)
             {
                 transactionlogic.SetLineDiscount(salesItem,discount);
-            salesItem.setUnitPriceChanged(true);
+               salesItem.setUnitPriceChanged(true);
+               salesItem.setNote("2222");
+
 
                 discount=BigDecimal.ZERO;
                 break;
@@ -108,7 +115,9 @@ public class ReturnTransactionLogic {
                     discount=BigDecimal.ZERO;
                  
                 transactionlogic.SetLineDiscount(salesItem,salesItem.getGrossAmount());
-            salesItem.setUnitPriceChanged(true);
+                salesItem.setNote("22222");
+                salesItem.setUnitPriceChanged(true);
+
 
                 // salesItem.setUnitPriceChanged(true);
             }
@@ -118,26 +127,64 @@ public class ReturnTransactionLogic {
 
     public void moveReturnedReceiptToCurrentReceipt(ReceiptEntity sourcereceipt,ReceiptEntity targetReceipt)
     {
-        targetReceipt.getSalesItems().stream().filter(a->a.getMaterial()!=null && !a.getStatus().equals("3") ).forEach(salesItem->{
-            BigDecimal descountAmount=salesItem.getDiscountAmount();
-             var refSalesItem=salesItem.getReferenceSalesItem();
-             var refUnitPrice=refSalesItem.getUnitGrossAmount();
-             var qty=salesItem.getQuantity();
-             BigDecimal amount=refUnitPrice.multiply(qty).subtract(descountAmount).divide(qty);
-             var unitGrossAmount=amount;
-             var unitNetAmount=amount;
+        var 
+         _sourceItems=sourcereceipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3"));
+         var sourceItems=_sourceItems.toArray();
+
+        for (int i = 0; i < targetReceipt.getSalesItems().size(); ++i) {
+            
+            var salesItem=targetReceipt.getSalesItems().get(i);
+            var sourceItem=(SalesItemEntity)sourceItems[i];
+            
+            BigDecimal descountAmount=sourceItem.getDiscountAmount();
+            var refSalesItem=salesItem.getReferenceSalesItem();
+
+            var unitGrossAmount=refSalesItem.getUnitGrossAmount();
+
+
+
+            var qty=salesItem.getQuantity();
+            BigDecimal amount=unitGrossAmount.multiply(qty).add(descountAmount).divide(qty);
+            //  var unitGrossAmount=amount;
+            //  var unitNetAmount=amount;
              salesItem.setReferenceSalesItem(null);
-             salesItem.setUnitNetAmount(unitNetAmount);
-             salesItem.setUnitGrossAmount(unitGrossAmount);
+             //salesItem.setUnitNetAmount(unitNetAmount);
+             salesItem.setUnitGrossAmount(amount);
              transactionlogic.SetLineDiscount(salesItem,BigDecimal.ZERO);
               salesItem.setUnitPriceChanged(true);
-        });
 
-        // sourcereceipt.getSalesItems().stream().forEach(a->{
-        //     transactionlogic.resetDiscountToSalesItem(a);
+            logger.info(descountAmount.toString());
+            
+            
+          }
+
+        // targetReceipt.getSalesItems().forEach(salesItem->{
+        //     if(!targetReceipt.getStatus().equals("3"))
+        //     {
+        //         // var salesItem=targetReceipt.getSalesItems().stream().filter(a->a.getExternalId().equals(sourceItem.getExternalId())).findFirst().get();
+        //         var refSalesItem=salesItem.getReferenceSalesItem();
+        //         BigDecimal descountAmount=salesItem.getDiscountAmount();
+        //         //var refUnitPrice=refSalesItem.getUnitGrossAmount();
+        //         var unitGrossAmount=refSalesItem.getUnitGrossAmount();
+        //         var unitNetAmount=refSalesItem.getUnitNetAmount();
+
+
+
+
+        //          var qty=salesItem.getQuantity();
+        //       BigDecimal amount=unitGrossAmount.multiply(qty).subtract(descountAmount).divide(qty);
+        //     //  var unitGrossAmount=amount;
+        //     //  var unitNetAmount=amount;
+        //      salesItem.setReferenceSalesItem(null);
+        //      //salesItem.setUnitNetAmount(unitNetAmount);
+        //      salesItem.setUnitGrossAmount(amount);
+        //      transactionlogic.SetLineDiscount(salesItem,BigDecimal.ZERO);
+        //       salesItem.setUnitPriceChanged(true);
+
+        //     }
             
         // });
-        // receiptManager.update(sourcereceipt);
+        
 
 
     }
