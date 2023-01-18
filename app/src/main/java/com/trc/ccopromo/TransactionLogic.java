@@ -279,6 +279,8 @@ public class TransactionLogic {
                 if(promos.itemDiscounts!=null)
                     if(!promos.itemDiscounts.isEmpty())
             {
+                    calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
+
                     for(var discountItem:promos.itemDiscounts)
                     {
                         BigDecimal discount=BigDecimal.valueOf(discountItem.discount);
@@ -296,7 +298,10 @@ public class TransactionLogic {
         for(String id : lines)
         {
             var salesItem=receipt.getSalesItems().stream().filter(a->a.getExternalId().equals(id)).findFirst().get();
-            if(discount.compareTo(salesItem.getGrossAmount())<=0)
+            if(discount.compareTo(
+                salesItem.getGrossAmount()
+                //salesItem.getUnitGrossAmount().multiply(salesItem.getQuantity())
+                )<=0)
             {
                 SetLineDiscount(salesItem,discount);
                 // salesItem.setUnitPriceChanged(true);
@@ -306,7 +311,11 @@ public class TransactionLogic {
             }
             else
             {
-                discount=discount.subtract(salesItem.getGrossAmount());
+                discount=discount.subtract(
+                    // salesItem.getUnitGrossAmount().multiply(salesItem.getQuantity())
+                    salesItem.getGrossAmount()
+
+                    );
                 if(discount.compareTo(BigDecimal.ZERO)<0)
                     discount=BigDecimal.ZERO;
                  
