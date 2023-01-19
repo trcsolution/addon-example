@@ -110,7 +110,7 @@ public class TrcPromoAddon extends BasePlugin {
 
     @Override
     public String getVersion() {
-        return "2.0.2";
+        return "2.0.4";
     }
 
     @Override
@@ -180,35 +180,35 @@ public class TrcPromoAddon extends BasePlugin {
         }
     }
 
-    @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveSalesItemByQuantity", where = PluginAt.POSITION.AFTER)
-    public Object moveSalesItemByQuantity(Object proxy, Object[] args, Object ret, StackTraceElement caller)
-            throws BreakExecutionException, IOException, InterruptedException {
-        ReturnReceiptObject result = (ReturnReceiptObject) ret;
-        ReceiptEntity targetReceipt = result.getIndividualItemsReceipt();
-        ReceiptEntity sourceReceipt = result.getSourceReceipt();
-        if (targetReceipt != null) {
-            TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-            ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
+    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveSalesItemByQuantity", where = PluginAt.POSITION.AFTER)
+    // public Object moveSalesItemByQuantity(Object proxy, Object[] args, Object ret, StackTraceElement caller)
+    //         throws BreakExecutionException, IOException, InterruptedException {
+    //     ReturnReceiptObject result = (ReturnReceiptObject) ret;
+    //     ReceiptEntity targetReceipt = result.getIndividualItemsReceipt();
+    //     ReceiptEntity sourceReceipt = result.getSourceReceipt();
+    //     if (targetReceipt != null) {
+    //         TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+    //         ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
 
-            logic.PickUpPromoLine(result);
-            // PickUpPromoTransaction(result);
-        }
-        return result;
-    }
+    //         logic.PickUpPromoLine(result);
+    //         // PickUpPromoTransaction(result);
+    //     }
+    //     return result;
+    // }
     
-    @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveReturnedReceiptToCurrentReceipt", where = PluginAt.POSITION.AFTER)
-    public Object moveReturnedReceiptToCurrentReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller) throws BreakExecutionException {
-        ReceiptEntity result = (ReceiptEntity) ret;
-        if (args.length == 8) {
-            ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
-            TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-            ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
+    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveReturnedReceiptToCurrentReceipt", where = PluginAt.POSITION.AFTER)
+    // public Object moveReturnedReceiptToCurrentReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller) throws BreakExecutionException {
+    //     ReceiptEntity result = (ReceiptEntity) ret;
+    //     if (args.length == 8) {
+    //         ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
+    //         TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+    //         ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
 
-            // ReceiptEntity receipt0 = (ReceiptEntity) args[0];
-            logic.moveReturnedReceiptToCurrentReceipt(receiptWithAdjustmentItems, result);
-        }
-        return result;
-    }
+    //         // ReceiptEntity receipt0 = (ReceiptEntity) args[0];
+    //         logic.moveReturnedReceiptToCurrentReceipt(receiptWithAdjustmentItems, result);
+    //     }
+    //     return result;
+    // }
 
 
     
