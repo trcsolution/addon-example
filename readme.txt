@@ -8,4 +8,4 @@ manifest.attributes["pluginName"] = "sasa"
     BB00404  0.80
     BB00064  1.35
 
-    2 for 1.5
+    2 for 1.5   

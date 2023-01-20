@@ -9,6 +9,7 @@ import com.sap.scco.ap.pos.entity.SalesItemEntity;
 import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Optional;
 import com.sap.scco.ap.pos.service.CalculationPosService;
@@ -271,6 +272,8 @@ public class TransactionLogic {
                     // salesItem.setUnitPriceChanged(true);
                 });
     }
+    BigDecimal _correctionAmount=BigDecimal.ZERO;
+
     public void CalculatePromotios(final ReceiptEntity receipt) throws IOException, InterruptedException {
         try {
             ResetSalesItems(receipt);
@@ -280,7 +283,7 @@ public class TransactionLogic {
                     if(!promos.itemDiscounts.isEmpty())
             {
                     calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
-
+                    _correctionAmount=BigDecimal.ZERO;
                     for(var discountItem:promos.itemDiscounts)
                     {
                         BigDecimal discount=BigDecimal.valueOf(discountItem.discount);
@@ -295,33 +298,28 @@ public class TransactionLogic {
          }
     }
     private BigDecimal UpdateLines(ReceiptEntity receipt, BigDecimal discount, String[] lines) {
+        
+        var _discount=discount;
         for(String id : lines)
         {
             var salesItem=receipt.getSalesItems().stream().filter(a->a.getExternalId().equals(id)).findFirst().get();
-            if(discount.compareTo(
+             _discount=_discount.add(_correctionAmount);
+             _correctionAmount=BigDecimal.ZERO;
+
+            if(_discount.compareTo(
                 salesItem.getGrossAmount()
                 //salesItem.getUnitGrossAmount().multiply(salesItem.getQuantity())
                 )<=0)
             {
-                SetLineDiscount(salesItem,discount);
-                // salesItem.setUnitPriceChanged(true);
-
-                discount=BigDecimal.ZERO;
+                 var linediscount=_discount.setScale(2,java.math.RoundingMode.HALF_DOWN);
+                _correctionAmount=_discount.subtract(linediscount);
+                SetLineDiscount(salesItem,linediscount);
                 break;
             }
             else
             {
-                discount=discount.subtract(
-                    // salesItem.getUnitGrossAmount().multiply(salesItem.getQuantity())
-                    salesItem.getGrossAmount()
-
-                    );
-                if(discount.compareTo(BigDecimal.ZERO)<0)
-                    discount=BigDecimal.ZERO;
-                 
+                _discount=_discount.subtract(salesItem.getGrossAmount());
                 SetLineDiscount(salesItem,salesItem.getGrossAmount());
-            // salesItem.setUnitPriceChanged(true);
-
                 // salesItem.setUnitPriceChanged(true);
             }
         }
