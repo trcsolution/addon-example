@@ -8,6 +8,8 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
+
+import com.beust.jcommander.JCommander.Builder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
 import com.trc.ccopromo.models.PromoRequest;
@@ -51,19 +53,31 @@ public class WebRequest {
         logger.info(JSONObject.fromObject(request).toString());
         logger.info("-------------- REQUEST END-----------");
 
-        HttpRequest httpRequest = HttpRequest.newBuilder()
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(JSONObject.fromObject(request).toString()))
-                .uri(URI.create(_config.getBaseUrl()))
-                .setHeader("User-Agent", "Promotions engine plugin")
-                // .header("Authorization", getBasicAuthenticationHeader(cfg.getUser(),
-                // cfg.getPassword()))
-                .build();
+        var builder=HttpRequest.newBuilder()
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString(JSONObject.fromObject(request).toString()))
+        .uri(URI.create(_config.getBaseUrl()))
+        .setHeader("User-Agent", "Promotions engine plugin");
+
+        if(_config.getSecure())
+            builder=builder.header("Authorization","Bearer ".concat(_config.getAPIKey()));
+
+        
+
+        HttpRequest httpRequest = builder.build();
+        // HttpRequest.newBuilder()
+        //         .header("Content-Type", "application/json")
+        //         .POST(HttpRequest.BodyPublishers.ofString(JSONObject.fromObject(request).toString()))
+        //         .uri(URI.create(_config.getBaseUrl()))
+        //         .setHeader("User-Agent", "Promotions engine plugin")
+        //         //.header("Authorization","Bearer ".concat(_config.getAPIKey()))
+        //         .build();
 
         HttpResponse<String> response = null;
         response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
         ObjectMapper m = new ObjectMapper();
         PromoResponse resp = m.readValue(response.body(), PromoResponse.class);
+        
 
         logger.info("-------------- RESPONCE BEGIN-----------");
         logger.info(response.body());

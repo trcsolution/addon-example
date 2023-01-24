@@ -73,30 +73,33 @@ public class TrcPromoAddon extends BasePlugin {
     public static final String BOOLEAN = "boolean";
 
     public static final String SPECIAL_DISCOUNT_CALC_SERVICE_URL = "SPECIAL_DISCOUNT_CALC_SERVICE_URL";
-    public static final String SPECIAL_DISCOUNT_SERVICE_USERNAME = "SPECIAL_DISCOUNT_SERVICE_USERNAME";
-    public static final String SPECIAL_DISCOUNT_SERVICE_PASSWORD = "SPECIAL_DISCOUNT_SERVICE_PASSWORD";
-    public static final String TRC_AUTOMATIC_DISCOUNTS_APPLIED = "TRC_AUTOMATIC_DISCOUNTS_APPLIED";
-    public static final String TRC_DISCOUNT_MANUALLY_CHANGED = "TRC_DISCOUNT_MANUALLY_CHANGED";
-    public static final String TRC_DISCOUNT_ID = "TRC_DISCOUNT_ID";
-    public static final String TRC_DISCOUNT_NAME = "TRC_DISCOUNT_NAME";
+    public static final String SPECIAL_DISCOUNT_SERVICE_APIKEY = "SPECIAL_DISCOUNT_SERVICE_APIKEY";
+    public static final String SPECIAL_DISCOUNT_SERVICE_SECURE = "SPECIAL_DISCOUNT_SERVICE_SECURE";
+    public static final String SPECIAL_DISCOUNT_SERVICE_ADVANCED_RETURN = "SPECIAL_DISCOUNT_SERVICE_ADVANCED_RETURN";
+    // public static final String SPECIAL_DISCOUNT_SERVICE_USERNAME = "SPECIAL_DISCOUNT_SERVICE_USERNAME";
+    // public static final String SPECIAL_DISCOUNT_SERVICE_PASSWORD = "SPECIAL_DISCOUNT_SERVICE_PASSWORD";
+    // public static final String TRC_AUTOMATIC_DISCOUNTS_APPLIED = "TRC_AUTOMATIC_DISCOUNTS_APPLIED";
+    // public static final String TRC_DISCOUNT_MANUALLY_CHANGED = "TRC_DISCOUNT_MANUALLY_CHANGED";
+    // public static final String TRC_DISCOUNT_ID = "TRC_DISCOUNT_ID";
+    // public static final String TRC_DISCOUNT_NAME = "TRC_DISCOUNT_NAME";
 
     private static Logger logger = LoggerFactory.getLogger(TrcPromoAddon.class);
     private static AtomicBoolean currentlyCalculating = new AtomicBoolean(false);
-    private static final HttpClient httpClient = HttpClient.newBuilder()
-            .version(HttpClient.Version.HTTP_1_1)
-            .connectTimeout(Duration.ofSeconds(10))
-            .build();
+    // private static final HttpClient httpClient = HttpClient.newBuilder()
+    //         .version(HttpClient.Version.HTTP_1_1)
+    //         .connectTimeout(Duration.ofSeconds(10))
+    //         .build();
     private CDBSession dbSession;
     // private PriceDiscountManager priceDiscountManager;
     // private MaterialPosService materialPosService;
-    private PosService posService;
-    private ReceiptPosService receiptPosService;
+    // private PosService posService;
+    // private ReceiptPosService receiptPosService;
     private ReceiptManager receiptManager;
     // private SalesItemManager salesItemManager;
     private CalculationPosService calculationPosService;
-    private SalesItemPosService salesItemPosService;
-    private EntityFactory entiryFactiry;
-    static private  Boolean ignoreCalculation=false;
+    // private SalesItemPosService salesItemPosService;
+    // private EntityFactory entiryFactiry;
+    // static private  Boolean ignoreCalculation=false;
 
     @Override
     public String getId() {
@@ -110,7 +113,7 @@ public class TrcPromoAddon extends BasePlugin {
 
     @Override
     public String getVersion() {
-        return "2.0.4";
+        return "2.0.6";
     }
 
     @Override
@@ -118,9 +121,9 @@ public class TrcPromoAddon extends BasePlugin {
         currentlyCalculating.set(false);
         this.dbSession = CDBSessionFactory.instance.createSession();
         this.receiptManager = new ReceiptManager(dbSession);
-        this.receiptPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(ReceiptPosService.class, dbSession);
+        // this.receiptPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(ReceiptPosService.class, dbSession);
         this.calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,dbSession);
-        this.salesItemPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(SalesItemPosService.class,dbSession);
+        // this.salesItemPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(SalesItemPosService.class,dbSession);
         super.startup();
     }
     
@@ -131,18 +134,21 @@ public class TrcPromoAddon extends BasePlugin {
 
     public PluginConfig getPluginConfig() {
         PluginConfig pluginConfig = new PluginConfig();
+        
         pluginConfig.setBaseUrl(getProperty(SPECIAL_DISCOUNT_CALC_SERVICE_URL, "")); // "http://192.168.0.17:5261/api/Promo/Calculate"
-        pluginConfig.setUser(getProperty(SPECIAL_DISCOUNT_SERVICE_USERNAME, null));
-        pluginConfig.setPassword(getProperty(SPECIAL_DISCOUNT_SERVICE_PASSWORD, null));
+        pluginConfig.setAPIKey(getProperty(SPECIAL_DISCOUNT_SERVICE_APIKEY, null));
+        pluginConfig.setSecure(getProperty(SPECIAL_DISCOUNT_SERVICE_SECURE, false));
+        pluginConfig.setAdvreturn(getProperty(SPECIAL_DISCOUNT_SERVICE_ADVANCED_RETURN, false));
         return pluginConfig;
     }
 
     @Override
     public Map<String, String> getPluginPropertyConfig() {
-        Map<String, String> propConfig = new HashMap<>();
+        Map<String, String> propConfig = new HashMap<>  ();
         propConfig.put(SPECIAL_DISCOUNT_CALC_SERVICE_URL, TEXT);
-        propConfig.put(SPECIAL_DISCOUNT_SERVICE_USERNAME, STRING);
-        propConfig.put(SPECIAL_DISCOUNT_SERVICE_PASSWORD, PASSWORD);
+        propConfig.put(SPECIAL_DISCOUNT_SERVICE_APIKEY, STRING);
+        propConfig.put(SPECIAL_DISCOUNT_SERVICE_SECURE, BOOLEAN);
+        propConfig.put(SPECIAL_DISCOUNT_SERVICE_ADVANCED_RETURN, BOOLEAN);
         return propConfig;
     }
     public Boolean LockCalculation()
@@ -180,35 +186,41 @@ public class TrcPromoAddon extends BasePlugin {
         }
     }
 
-    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveSalesItemByQuantity", where = PluginAt.POSITION.AFTER)
-    // public Object moveSalesItemByQuantity(Object proxy, Object[] args, Object ret, StackTraceElement caller)
-    //         throws BreakExecutionException, IOException, InterruptedException {
-    //     ReturnReceiptObject result = (ReturnReceiptObject) ret;
-    //     ReceiptEntity targetReceipt = result.getIndividualItemsReceipt();
-    //     ReceiptEntity sourceReceipt = result.getSourceReceipt();
-    //     if (targetReceipt != null) {
-    //         TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-    //         ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
+    @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveSalesItemByQuantity", where = PluginAt.POSITION.AFTER)
+    public Object moveSalesItemByQuantity(Object proxy, Object[] args, Object ret, StackTraceElement caller)
+            throws BreakExecutionException, IOException, InterruptedException {
+        ReturnReceiptObject result = (ReturnReceiptObject) ret;
+        if(this.getPluginConfig().getAdvreturn())
+        {
 
-    //         logic.PickUpPromoLine(result);
-    //         // PickUpPromoTransaction(result);
-    //     }
-    //     return result;
-    // }
+            ReceiptEntity targetReceipt = result.getIndividualItemsReceipt();
+            ReceiptEntity sourceReceipt = result.getSourceReceipt();
+            if (targetReceipt != null) {
+                TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+                ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
     
-    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveReturnedReceiptToCurrentReceipt", where = PluginAt.POSITION.AFTER)
-    // public Object moveReturnedReceiptToCurrentReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller) throws BreakExecutionException {
-    //     ReceiptEntity result = (ReceiptEntity) ret;
-    //     if (args.length == 8) {
-    //         ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
-    //         TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-    //         ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
+                logic.PickUpPromoLine(result);
+                // PickUpPromoTransaction(result);
+            }
+        }
+        return result;
+    }
+    
+    @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveReturnedReceiptToCurrentReceipt", where = PluginAt.POSITION.AFTER)
+    public Object moveReturnedReceiptToCurrentReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller) throws BreakExecutionException {
+        ReceiptEntity result = (ReceiptEntity) ret;
+        if (args.length == 8) 
+            if(this.getPluginConfig().getAdvreturn())
+            {
+            ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
+            TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+            ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
 
-    //         // ReceiptEntity receipt0 = (ReceiptEntity) args[0];
-    //         logic.moveReturnedReceiptToCurrentReceipt(receiptWithAdjustmentItems, result);
-    //     }
-    //     return result;
-    // }
+            // ReceiptEntity receipt0 = (ReceiptEntity) args[0];
+            logic.moveReturnedReceiptToCurrentReceipt(receiptWithAdjustmentItems, result);
+        }
+        return result;
+    }
 
 
     

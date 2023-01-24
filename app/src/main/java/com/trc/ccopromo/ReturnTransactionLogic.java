@@ -22,6 +22,8 @@ import com.sap.scco.env.UIEventDispatcher;
 import com.sap.scco.util.CConst;
 import com.trc.ccopromo.models.ItemDiscount;
 
+
+
 public class ReturnTransactionLogic {
     private TrcPromoAddon _addon;
     private ReceiptManager receiptManager;
@@ -39,8 +41,63 @@ public class ReturnTransactionLogic {
 
     // static <T,K> Collector<T,?,Map<K,List<T>>> 
     //  groupingBy(Function<? super T,? extends K> classifier)
-
+    class PROMOTYPE {
+        static final int NONE = 0,SIMPLE = 1, BUYANDGET = 2, FIXEDPRIXEFIXEDQTY = 3,SPENDANDGET=4;
+        }
+    int getPromoType(SalesItemEntity entry)
+    {
+        
+        if(entry.getAdditionalField("PromoType")==null)
+                return PROMOTYPE.NONE;
+            else
+                return Integer.parseInt(entry.getAdditionalField("PromoType").getValue());
+    }
+    Boolean NotCanceled(SalesItemEntity item)
+    {
+         return !item.getStatus().equals("3");
+    }
+    
     public void PickUpPromoLine(ReturnReceiptObject returnReciept) throws IOException, InterruptedException
+    {
+        ReceiptEntity targetReceipt = returnReciept.getIndividualItemsReceipt();
+        ReceiptEntity sourceReceipt = returnReciept.getSourceReceipt();
+        ReceiptEntity actualOriginalReceipt = transactionlogic.LoadReceipt(returnReciept.getSourceReceipt().getId());
+        Map<String,Double> discounts=actualOriginalReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && getPromoType(a)==PROMOTYPE.BUYANDGET)
+            .collect(Collectors.groupingBy(item->item.getId(),Collectors.summingDouble(c->c.getDiscountAmount().doubleValue())));
+
+
+        targetReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && discounts.get(a.getId())!=null).forEach(salesItem->
+        {
+            transactionlogic.SetLineDiscount(salesItem,BigDecimal.ZERO);
+            salesItem.setUnitPriceChanged(true);
+        });
+
+        sourceReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && discounts.get(a.getId())!=null).forEach(salesItem->
+        {
+            transactionlogic.SetLineDiscount(salesItem,BigDecimal.ZERO);
+            salesItem.setUnitPriceChanged(true);
+        });
+
+
+            for (String name : discounts.keySet()) {
+                BigDecimal discount=BigDecimal.valueOf(discounts.get(name));
+               var lines=targetReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && a.getId().equals(name)).map(a->a.getExternalId()).toArray(String[]::new);
+               discount = UpdateLines(targetReceipt, discount, lines);
+               if(discount.compareTo(BigDecimal.ZERO)>0)
+               {
+                   var lines1=sourceReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && a.getId().equals(name)).map(a->a.getExternalId()).toArray(String[]::new);
+                   discount = UpdateLines(sourceReceipt,discount,lines1);
+               }
+           }
+        
+           calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);
+           UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, targetReceipt);
+   
+           calculationPosService.calculate(sourceReceipt, EntityActions.CHECK_CONS);
+           UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, sourceReceipt);
+
+    }
+    public void PickUpPromoLine1(ReturnReceiptObject returnReciept) throws IOException, InterruptedException
     {
         ReceiptEntity targetReceipt = returnReciept.getIndividualItemsReceipt();
         ReceiptEntity sourceReceipt = returnReciept.getSourceReceipt();
@@ -102,7 +159,7 @@ public class ReturnTransactionLogic {
             {
                 transactionlogic.SetLineDiscount(salesItem,discount);
                salesItem.setUnitPriceChanged(true);
-               salesItem.setNote("2222");
+            //    salesItem.setNote("2222");
 
 
                 discount=BigDecimal.ZERO;
@@ -115,7 +172,7 @@ public class ReturnTransactionLogic {
                     discount=BigDecimal.ZERO;
                  
                 transactionlogic.SetLineDiscount(salesItem,salesItem.getGrossAmount());
-                salesItem.setNote("22222");
+                // salesItem.setNote("22222");
                 salesItem.setUnitPriceChanged(true);
 
 
@@ -127,13 +184,20 @@ public class ReturnTransactionLogic {
 
     public void moveReturnedReceiptToCurrentReceipt(ReceiptEntity sourcereceipt,ReceiptEntity targetReceipt)
     {
-        var 
-         _sourceItems=sourcereceipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3"));
+       // ReceiptEntity actualOriginalReceipt = transactionlogic.LoadReceipt(returnReciept.getSourceReceipt().getId());
+
+        var _sourceItems=sourcereceipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3"));
          var sourceItems=_sourceItems.toArray();
 
         for (int i = 0; i < targetReceipt.getSalesItems().size(); ++i) {
             
+            //targetReceipt.
             var salesItem=targetReceipt.getSalesItems().get(i);
+            
+            var promoType=getPromoType(salesItem);
+            if(promoType!=PROMOTYPE.BUYANDGET)
+             continue;
+            // salesItem.getAdditionalFields()
             var sourceItem=(SalesItemEntity)sourceItems[i];
             
             BigDecimal descountAmount=sourceItem.getDiscountAmount();

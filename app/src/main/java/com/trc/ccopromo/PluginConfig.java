@@ -2,8 +2,10 @@ package com.trc.ccopromo;
 
 public class PluginConfig {
     private String baseUrl;
-    private String user;
-    private String password;
+    private String apiKey;
+    private Boolean secure;
+    private Boolean advreturn;
+    // private String password;
 
     public String getBaseUrl() {
         return baseUrl;
@@ -13,20 +15,28 @@ public class PluginConfig {
         this.baseUrl = baseUrl;
     }
 
-    public String getUser() {
-        return user;
+    public String getAPIKey() {
+        return apiKey;
+
+    }
+    public void setAPIKey(String apiKey) {
+        this.apiKey = apiKey;
+    }
+
+
+    public void setSecure(Boolean secure) {
+        this.secure = secure;
+    }
+    public Boolean getSecure() {
+        return secure;
+
+    }
+    public void setAdvreturn(Boolean advreturn) {
+        this.advreturn = advreturn;
+    }
+    public Boolean getAdvreturn() {
+        return advreturn;
 
     }
 
-    public void setUser(String user) {
-        this.user = user;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
 }

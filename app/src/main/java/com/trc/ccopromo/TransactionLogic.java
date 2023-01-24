@@ -55,7 +55,7 @@ public class TransactionLogic {
         // dbSession = _dbSession;
     }
 
-    public void setAdditionalField(SalesItemEntity salesItem, String key, String value) {
+    public static void setAdditionalField(SalesItemEntity salesItem, String key, String value) {
         AdditionalFieldEntity additionalField2 = salesItem.getAdditionalField(key);
         if (additionalField2 == null) {
             if (value == null)
@@ -286,9 +286,10 @@ public class TransactionLogic {
                     _correctionAmount=BigDecimal.ZERO;
                     for(var discountItem:promos.itemDiscounts)
                     {
-                        BigDecimal discount=BigDecimal.valueOf(discountItem.discount);
+                       // discountItem.promoId,
+                        // BigDecimal discount=BigDecimal.valueOf(discountItem.discount);
                         var lines=receipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3") && a.getId().equals(discountItem.itemCode)).map(a->a.getExternalId()).toArray(String[]::new);
-                        discount = UpdateLines(receipt, discount, lines);
+                         UpdateLines(receipt, discountItem, lines);
                     }
             }
 
@@ -297,9 +298,11 @@ public class TransactionLogic {
          e.printStackTrace();
          }
     }
-    private BigDecimal UpdateLines(ReceiptEntity receipt, BigDecimal discount, String[] lines) {
+    private void UpdateLines(ReceiptEntity receipt, ItemDiscount discount
+    //BigDecimal discount
+    , String[] lines) {
         
-        var _discount=discount;
+        var _discount=BigDecimal.valueOf(discount.discount);
         for(String id : lines)
         {
             var salesItem=receipt.getSalesItems().stream().filter(a->a.getExternalId().equals(id)).findFirst().get();
@@ -314,16 +317,22 @@ public class TransactionLogic {
                  var linediscount=_discount.setScale(2,java.math.RoundingMode.HALF_DOWN);
                 _correctionAmount=_discount.subtract(linediscount);
                 SetLineDiscount(salesItem,linediscount);
+
+                setAdditionalField(salesItem,"PromoId",Integer.toString(discount.promoId));
+                setAdditionalField(salesItem,"PromoType",Integer.toString(discount.promoType));
                 break;
             }
             else
             {
                 _discount=_discount.subtract(salesItem.getGrossAmount());
                 SetLineDiscount(salesItem,salesItem.getGrossAmount());
+
+                setAdditionalField(salesItem,"PromoId",Integer.toString(discount.promoId));
+                setAdditionalField(salesItem,"PromoType",Integer.toString(discount.promoType));
                 // salesItem.setUnitPriceChanged(true);
             }
         }
-        return discount;
+       //return discount;
     }
 
     
@@ -337,6 +346,7 @@ public class TransactionLogic {
         salesItem.setMarkChanged(true);
         salesItem.setItemDiscountChanged(true);
         salesItem.setDiscountManuallyChanged(true);
+
     }
 
     public void resetDiscountToSalesItem(SalesItemEntity salesItem) {
