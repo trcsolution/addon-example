@@ -318,8 +318,9 @@ public class TransactionLogic {
                 _correctionAmount=_discount.subtract(linediscount);
                 SetLineDiscount(salesItem,linediscount);
 
-                setAdditionalField(salesItem,"PromoId",Integer.toString(discount.promoId));
-                setAdditionalField(salesItem,"PromoType",Integer.toString(discount.promoType));
+                // com.trc.ccopromo.models.Constants.PROMO_ID
+                setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_ID,Integer.toString(discount.promoId));
+                setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_TYPE,Integer.toString(discount.promoType));
                 break;
             }
             else
@@ -327,8 +328,8 @@ public class TransactionLogic {
                 _discount=_discount.subtract(salesItem.getGrossAmount());
                 SetLineDiscount(salesItem,salesItem.getGrossAmount());
 
-                setAdditionalField(salesItem,"PromoId",Integer.toString(discount.promoId));
-                setAdditionalField(salesItem,"PromoType",Integer.toString(discount.promoType));
+                setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_ID,Integer.toString(discount.promoId));
+                setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_TYPE,Integer.toString(discount.promoType));
                 // salesItem.setUnitPriceChanged(true);
             }
         }

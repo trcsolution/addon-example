@@ -44,13 +44,21 @@ public class ReturnTransactionLogic {
     class PROMOTYPE {
         static final int NONE = 0,SIMPLE = 1, BUYANDGET = 2, FIXEDPRIXEFIXEDQTY = 3,SPENDANDGET=4;
         }
+        
     int getPromoType(SalesItemEntity entry)
     {
         
-        if(entry.getAdditionalField("PromoType")==null)
+        if(entry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_TYPE)==null)
                 return PROMOTYPE.NONE;
             else
-                return Integer.parseInt(entry.getAdditionalField("PromoType").getValue());
+                return Integer.parseInt(entry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_TYPE).getValue());
+    }
+    int getPromoId(SalesItemEntity entry)
+    {
+        if(entry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID)==null)
+                return Integer.valueOf(0);
+            else
+                return Integer.parseInt(entry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID).getValue());
     }
     Boolean NotCanceled(SalesItemEntity item)
     {
@@ -62,8 +70,11 @@ public class ReturnTransactionLogic {
         ReceiptEntity targetReceipt = returnReciept.getIndividualItemsReceipt();
         ReceiptEntity sourceReceipt = returnReciept.getSourceReceipt();
         ReceiptEntity actualOriginalReceipt = transactionlogic.LoadReceipt(returnReciept.getSourceReceipt().getId());
-        Map<String,Double> discounts=actualOriginalReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && getPromoType(a)==PROMOTYPE.BUYANDGET)
-            .collect(Collectors.groupingBy(item->item.getId(),Collectors.summingDouble(c->c.getDiscountAmount().doubleValue())));
+        // Map<String,Double> discounts=actualOriginalReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && getPromoType(a)==PROMOTYPE.BUYANDGET)
+        
+        //     .collect(Collectors.groupingBy(item->item.getId(),Collectors.summingDouble(c->c.getDiscountAmount().doubleValue())));
+        Map<Integer,List<SalesItemEntity>> promoids = actualOriginalReceipt.getSalesItems().stream().filter(a->NotCanceled(a))
+                .collect(Collectors.groupingBy(item->getPromoId(item),Collectors.toList()));
 
 
         targetReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && discounts.get(a.getId())!=null).forEach(salesItem->
@@ -77,18 +88,25 @@ public class ReturnTransactionLogic {
             transactionlogic.SetLineDiscount(salesItem,BigDecimal.ZERO);
             salesItem.setUnitPriceChanged(true);
         });
+        for (Integer promoid : discounts.keySet()) {
+
+            // promoids.get(promoid)
+
+            // var lines=targetReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && a.getId().equals(name)).map(a->a.getExternalId()).toArray(String[]::new);
+
+        }
 
 
-            for (String name : discounts.keySet()) {
-                BigDecimal discount=BigDecimal.valueOf(discounts.get(name));
-               var lines=targetReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && a.getId().equals(name)).map(a->a.getExternalId()).toArray(String[]::new);
-               discount = UpdateLines(targetReceipt, discount, lines);
-               if(discount.compareTo(BigDecimal.ZERO)>0)
-               {
-                   var lines1=sourceReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && a.getId().equals(name)).map(a->a.getExternalId()).toArray(String[]::new);
-                   discount = UpdateLines(sourceReceipt,discount,lines1);
-               }
-           }
+        //     for (String name : discounts.keySet()) {
+        //         BigDecimal discount=BigDecimal.valueOf(discounts.get(name));
+        //        var lines=targetReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && a.getId().equals(name)).map(a->a.getExternalId()).toArray(String[]::new);
+        //        discount = UpdateLines(targetReceipt, discount, lines);
+        //        if(discount.compareTo(BigDecimal.ZERO)>0)
+        //        {
+        //            var lines1=sourceReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && a.getId().equals(name)).map(a->a.getExternalId()).toArray(String[]::new);
+        //            discount = UpdateLines(sourceReceipt,discount,lines1);
+        //        }
+        //    }
         
            calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);
            UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, targetReceipt);
