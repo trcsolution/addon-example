@@ -199,7 +199,8 @@ public class TrcPromoAddon extends BasePlugin {
                 TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
                 ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
     
-                logic.PickUpPromoLine(result);
+                logic.ItemForReturn(result);
+                // logic.PickUpPromoLine(result);
                 // PickUpPromoTransaction(result);
             }
         }
