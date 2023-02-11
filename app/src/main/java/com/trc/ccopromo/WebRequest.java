@@ -10,11 +10,16 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 import com.beust.jcommander.JCommander.Builder;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
 import com.trc.ccopromo.models.PromoRequest;
 import com.trc.ccopromo.models.PromoRequestItem;
 import com.trc.ccopromo.models.PromoResponse;
+import com.trc.ccopromo.models.transaction.post.Data;
+import com.trc.ccopromo.models.transaction.post.Item;
+import com.trc.ccopromo.models.transaction.post.PostTransactionRequest;
+
 import org.slf4j.Logger;
 import net.sf.json.JSONObject;
 import org.slf4j.LoggerFactory;
@@ -56,7 +61,7 @@ public class WebRequest {
         var builder=HttpRequest.newBuilder()
         .header("Content-Type", "application/json")
         .POST(HttpRequest.BodyPublishers.ofString(JSONObject.fromObject(request).toString()))
-        .uri(URI.create(_config.getBaseUrl()))
+        .uri(URI.create(_config.getBaseUrl()+"/api/Promo/Calculate"))
         .setHeader("User-Agent", "Promotions engine plugin");
 
         if(_config.getSecure())
@@ -84,6 +89,74 @@ public class WebRequest {
         logger.info("-------------- RESPONCE END-----------");
 
         return resp;
+    }
+    public void PostTransaction(ReceiptEntity receipt) 
+    {
+        PostTransactionRequest request=new PostTransactionRequest();
+        
+        request.data=new Data();
+        request.data.transactionNumber=receipt.getId();
+        request.data.isPosted=false;
+         request.data.items=
+        receipt.getSalesItems().stream().
+        collect(
+    Collectors.mapping(
+      a->new Item(a.getId()
+      ,a.getMaterial().getArticleGroup().getId()
+      ,a.getQuantity().doubleValue()
+      ,a.getUnitGrossAmount().doubleValue()
+      ,a.getDiscountAmount().doubleValue()
+      ,a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID)
+    //   ,Integer.valueOf(47)
+      ),
+      Collectors.toList()));
+
+
+    //   var addField=a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID);
+
+
+        String json="";
+        
+        var mapper = new ObjectMapper();
+       try {
+
+        json=mapper.writeValueAsString(request);
+
+
+        logger.info(json);
+    } catch (JsonProcessingException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+    }
+
+        // var s=JSONObject.fromObject(request).toString();
+       
+
+        var builder=HttpRequest.newBuilder()
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString(json))
+        .uri(URI.create(_config.getBaseUrl()+"/api/Promo/Save"))
+        .setHeader("User-Agent", "Promotions engine plugin");
+
+        if(_config.getSecure())
+            builder=builder.header("Authorization","Bearer ".concat(_config.getAPIKey()));
+
+
+        HttpRequest httpRequest = builder.build();
+        HttpResponse<String> response = null;
+        try {
+            response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            logger.info(response.body());
+        } catch (IOException | InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        // ObjectMapper m = new ObjectMapper();
+        // PromoResponse resp = m.readValue(response.body(), PromoResponse.class);
+
+
+        logger.info("-------------- PostTransaction -----------");
+
     }
 
 }

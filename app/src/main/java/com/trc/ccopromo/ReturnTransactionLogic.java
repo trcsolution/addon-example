@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collector;
@@ -73,32 +74,64 @@ public class ReturnTransactionLogic {
         ReceiptEntity sourceReceipt = returnReciept.getSourceReceipt();
         ReceiptEntity actualOriginalReceipt = transactionlogic.LoadReceipt(returnReciept.getSourceReceipt().getId());
 
-        Map<Integer,List<SalesItemEntity>> promos=actualOriginalReceipt.getSalesItems().stream().filter(a->NotCanceled(a))
-        .collect(Collectors.groupingBy(item->getPromoId(item),Collectors.toList()));
+        
 
-        for (Integer promoid : promos.keySet()) {
-            List<SalesItemEntity> origsalesItems=promos.get(promoid);
-            targetReceipt.getSalesItems().stream().filter(a->NotCanceled(a) ).forEach(salesItem->
+       var promos=actualOriginalReceipt.getSalesItems().stream()
+                .filter(a->getPromoId(a)>0)
+                .collect(Collectors.toMap(SalesItemEntity::getId,a->getPromoId(a)));
+            
+            // .entrySet()
+            // .stream().collect(Collectors.toMap(a->a.getKey(), a->a.getValue().get(a.getKey()).stream().findFirst()));
+            
+            logger.info(String.valueOf(promos.size()));
+            // promos.stream().collect(Collectors.toMap(a->a.getKey(), a->a.getValue().values().stream().findFirst()));
+
+            // if( promos.get("111").isPresent())
+            // stream().anyMatch(a->a.getValue().keySet().stream().anyMatch(b->b.equals(1)))
+             
             {
-                transactionlogic.SetLineDiscount(salesItem,BigDecimal.ZERO);
-                salesItem.setUnitPriceChanged(true);
-            });
-            BigDecimal total=BigDecimal.valueOf(origsalesItems.stream().collect(Collectors.summingDouble(a->a.getGrossAmount().doubleValue())).doubleValue());
-            BigDecimal discount=BigDecimal.valueOf(origsalesItems.stream().collect(Collectors.summingDouble(a->a.getDiscountAmount().doubleValue())).doubleValue());
-            total=total.subtract(discount).setScale(2,RoundingMode.HALF_UP);
-            for(SalesItemEntity origitem:promos.get(promoid))
-            {
-                var targetItems=targetReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && a.getId().equals(origitem.getId())).toArray(SalesItemEntity[]::new);
-                //var ttl=total.subtract(origitem.getGrossAmount());
-                for(SalesItemEntity salesItem:targetItems)
-                {
-                    BigDecimal grossAmount=salesItem.getGrossAmount().setScale(2,RoundingMode.HALF_UP);
-                    BigDecimal _discount1=total.subtract(grossAmount).setScale(2,RoundingMode.HALF_UP);
-                    transactionlogic.SetLineDiscount(salesItem,_discount1);
-                    salesItem.setUnitPriceChanged(true);
-                }
-            }
-        }
+
+            };
+             
+            // .map(a->new Object(){String ItemId=a.getId();int PromoId=getPromoId(a);}).toArray();
+            
+        // var len=promos.entrySet().stream(). size();
+
+
+        
+        // map<SalesItemEntity,Integer>(a->{
+        //     Id:a.getId(),
+        //     PromoId:getPromoId(a)
+        // });
+
+        
+
+        // Map<Integer,List<SalesItemEntity>> promos=actualOriginalReceipt.getSalesItems().stream().filter(a->NotCanceled(a))
+        // .collect(Collectors.groupingBy(item->getPromoId(item),Collectors.toList()));
+
+        // for (Integer promoid : promos.keySet()) {
+        //     List<SalesItemEntity> origsalesItems=promos.get(promoid);
+        //     targetReceipt.getSalesItems().stream().filter(a->NotCanceled(a) ).forEach(salesItem->
+        //     {
+        //         transactionlogic.SetLineDiscount(salesItem,BigDecimal.ZERO);
+        //         salesItem.setUnitPriceChanged(true);
+        //     });
+        //     BigDecimal total=BigDecimal.valueOf(origsalesItems.stream().collect(Collectors.summingDouble(a->a.getGrossAmount().doubleValue())).doubleValue());
+        //     BigDecimal discount=BigDecimal.valueOf(origsalesItems.stream().collect(Collectors.summingDouble(a->a.getDiscountAmount().doubleValue())).doubleValue());
+        //     total=total.subtract(discount).setScale(2,RoundingMode.HALF_UP);
+        //     for(SalesItemEntity origitem:promos.get(promoid))
+        //     {
+        //         var targetItems=targetReceipt.getSalesItems().stream().filter(a->NotCanceled(a) && a.getId().equals(origitem.getId())).toArray(SalesItemEntity[]::new);
+        //         //var ttl=total.subtract(origitem.getGrossAmount());
+        //         for(SalesItemEntity salesItem:targetItems)
+        //         {
+        //             BigDecimal grossAmount=salesItem.getGrossAmount().setScale(2,RoundingMode.HALF_UP);
+        //             BigDecimal _discount1=total.subtract(grossAmount).setScale(2,RoundingMode.HALF_UP);
+        //             transactionlogic.SetLineDiscount(salesItem,_discount1);
+        //             salesItem.setUnitPriceChanged(true);
+        //         }
+        //     }
+        // }
         calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);
         UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, targetReceipt);
     }

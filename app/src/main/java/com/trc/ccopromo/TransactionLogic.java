@@ -55,6 +55,23 @@ public class TransactionLogic {
         // dbSession = _dbSession;
     }
 
+    public static void setTransactionAdditionalField(ReceiptEntity receipt, String key, String value) {
+        AdditionalFieldEntity additionalField2 = receipt.getAdditionalField(key);
+        if (additionalField2 == null) {
+            if (value == null)
+                return;
+            additionalField2 = new AdditionalFieldEntity();
+            receipt.addAdditionalField(additionalField2);
+        }
+        additionalField2.setFieldName(key);
+        // additionalField2.setGroupName(com.trc.ccopromo.models.Constants.PROMO_GROUP);
+        if(value==null)
+        additionalField2.setValue("");
+            else
+        additionalField2.setValue(value);
+
+
+    }
     public static void setAdditionalField(SalesItemEntity salesItem, String key, String value) {
         AdditionalFieldEntity additionalField2 = salesItem.getAdditionalField(key);
         if (additionalField2 == null) {
@@ -292,6 +309,7 @@ public class TransactionLogic {
                          UpdateLines(receipt, discountItem, lines);
                     }
             }
+            setTransactionAdditionalField(receipt,"IsProcessed","0");
 
         } catch (Exception e) {
         // TODO Auto-generated catch block

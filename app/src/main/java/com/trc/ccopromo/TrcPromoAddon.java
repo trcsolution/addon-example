@@ -62,6 +62,7 @@ import com.sap.scco.env.UIEventDispatcher;
 import com.sap.scco.util.CConst;
 import com.sap.scco.util.exception.ValidationException;
 import com.sap.scco.util.types.LogGDT;
+import com.sap.scco.ap.pos.entity.AdditionalFieldEntity;
 import com.sap.scco.ap.pos.entity.BaseEntity;
 
 public class TrcPromoAddon extends BasePlugin {
@@ -185,6 +186,29 @@ public class TrcPromoAddon extends BasePlugin {
             // currentlyCalculating.set(false);
         }
     }
+
+    @PluginAt(pluginClass = ReceiptPosService.class, method = "postReceipt", where = PluginAt.POSITION.AFTER)
+    public Object postReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller)
+    {
+        ReceiptEntity transaction = (ReceiptEntity)args[0];
+        if(transaction.getSalesItems().stream().anyMatch(a->
+        {
+            if(a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID)==null)
+              return false;
+              else
+            return Integer.valueOf(a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID).getValue())>0;
+            
+        }
+        ))
+        {
+            var request = new WebRequest(getPluginConfig());
+            request.PostTransaction(transaction);
+        }
+        return ret;
+    }
+
+
+
 
     @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveSalesItemByQuantity", where = PluginAt.POSITION.AFTER)
     public Object moveSalesItemByQuantity(Object proxy, Object[] args, Object ret, StackTraceElement caller)
