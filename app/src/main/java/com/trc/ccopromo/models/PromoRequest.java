@@ -4,41 +4,24 @@
 Root root = om.readValue(myJsonString, Root.class); */
 package com.trc.ccopromo.models;
 import java.util.*;
-// import java.util.concurrent.atomic.AtomicBoolean;
-// import java.util.stream.Collectors;
-
-
+import com.fasterxml.jackson.annotation.JsonProperty;
 public class PromoRequest{
-    // @JsonProperty("transactionNumber") 
-    public String getTransactionNumber() { 
-		 return this.transactionNumber; } 
-    public void setTransactionNumber(String transactionNumber) { 
-		 this.transactionNumber = transactionNumber; } 
-    String transactionNumber;
-    // @JsonProperty("items") 
-    public ArrayList<PromoRequestItem> getItems() { 
-		 return this.items; } 
-    public void setItems(ArrayList<PromoRequestItem> items) { 
-		 this.items = items; } 
-    ArrayList<PromoRequestItem> items;
-    // @JsonProperty("amount") 
-    public int getAmount() { 
-		 return this.amount; } 
-    public void setAmount(int amount) { 
-		 this.amount = amount; } 
-    int amount;
-    // @JsonProperty("coupons") 
-    public ArrayList<String> getCoupons() { 
-		 return this.coupons; } 
-    public void setCoupons(ArrayList<String> coupons) { 
-		 this.coupons = coupons; } 
-    ArrayList<String> coupons;
-    // @JsonProperty("refPromos") 
-    public ArrayList<Integer> getRefPromos() { 
-		 return this.refPromos; } 
-    public void setRefPromos(ArrayList<Integer> refPromos) { 
-		 this.refPromos = refPromos; } 
-    ArrayList<Integer> refPromos;
+    // public PromoRequest)
+    @JsonProperty("transactionNumber") 
+    
+    public String transactionNumber;
+    @JsonProperty("items") 
+    public ArrayList<PromoRequestItem> items;
+    @JsonProperty("amount") 
+    public double amount;
+    @JsonProperty("coupons") 
+    public ArrayList<String> coupons;
+    @JsonProperty("refPromos") 
+    public ArrayList<Integer> refPromos;
+    
+    @JsonProperty("promotions") 
+    
+    public List<com.trc.ccopromo.models.storedpromo.StoredPromo> promotions;
     
 }
 

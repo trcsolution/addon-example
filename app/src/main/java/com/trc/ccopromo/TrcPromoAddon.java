@@ -187,8 +187,10 @@ public class TrcPromoAddon extends BasePlugin {
         }
     }
 
-    @PluginAt(pluginClass = ReceiptPosService.class, method = "postReceipt", where = PluginAt.POSITION.AFTER)
-    public Object postReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller)
+    @PluginAt(pluginClass = ReceiptPosService.class, method = "postReceipt", where = PluginAt.POSITION.BEFORE)
+    public Object postReceipt(Object proxy, Object[] args, Object ret)
+    // @PluginAt(pluginClass = ReceiptPosService.class, method = "postReceipt", where = PluginAt.POSITION.AFTER)
+    // public Object postReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller)
     {
         ReceiptEntity transaction = (ReceiptEntity)args[0];
         if(transaction.getSalesItems().stream().anyMatch(a->
@@ -201,8 +203,9 @@ public class TrcPromoAddon extends BasePlugin {
         }
         ))
         {
-            var request = new WebRequest(getPluginConfig());
-            request.PostTransaction(transaction);
+            TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+            transactionLogic.postReceipt(transaction);
+            
         }
         return ret;
     }

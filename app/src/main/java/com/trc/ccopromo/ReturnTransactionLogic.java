@@ -7,14 +7,18 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Function;
 import com.sap.scco.ap.pos.dao.ReceiptManager;
+import com.sap.scco.ap.pos.entity.AdditionalFieldEntity;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
 import com.sap.scco.ap.pos.entity.SalesItemEntity;
 import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
@@ -73,32 +77,51 @@ public class ReturnTransactionLogic {
         ReceiptEntity targetReceipt = returnReciept.getIndividualItemsReceipt();
         ReceiptEntity sourceReceipt = returnReciept.getSourceReceipt();
         ReceiptEntity actualOriginalReceipt = transactionlogic.LoadReceipt(returnReciept.getSourceReceipt().getId());
-
-        
-
-       var promos=actualOriginalReceipt.getSalesItems().stream()
+        var promos=actualOriginalReceipt.getSalesItems().stream()
                 .filter(a->getPromoId(a)>0)
                 .collect(Collectors.toMap(SalesItemEntity::getId,a->getPromoId(a)));
             
-            // .entrySet()
-            // .stream().collect(Collectors.toMap(a->a.getKey(), a->a.getValue().get(a.getKey()).stream().findFirst()));
+            var request=transactionlogic.MakePromoRequest(sourceReceipt, null);
+
+            var mapper = new ObjectMapper();
+            request.promotions=actualOriginalReceipt.getAdditionalFields().stream().filter(a->a.getFieldName().startsWith("Promo:")).map(a->
+                {
+                    try {
+                        return mapper.readValue(a.getValue(),  com.trc.ccopromo.models.storedpromo.StoredPromo.class);
+                    } catch (JsonProcessingException e) {
+                        e.printStackTrace();
+                    }
+                    return null;
+                }
+                ).collect(Collectors.toList());
+                var response=transactionlogic.PostCalculationRequest(request);
+
+                ObjectMapper m = new ObjectMapper();
+                com.trc.ccopromo.models.PromoResponse resp = m.readValue(response, com.trc.ccopromo.models.PromoResponse.class);
+
+                
+
+
+            logger.info(response);
+            // var p = RequestPromo(sourceReceipt,null);
+            // transactionlogic.RequestPromo(sourceReceipt, null);
+            // var promoslist=actualOriginalReceipt.getAdditionalFields().stream().filter(a->a.getFieldName().startsWith("Promo:")).map(a->a.getValue()).toArray(String[]::new);
+            // for (String entry : promoslist) {
+            //     var p=mapper.readValue(entry,  com.trc.ccopromo.models.storedpromo.StoredPromo.class);
+            //    logger.info(String.valueOf(p.jsonBody));
+
+            // }
+            // logger.info(String.valueOf(promoslist.length));
+
+            // var promos=mapper.readValue("{\"p\":"+json+"}", com.trc.ccopromo.models.storedpromo.StoredPromos.class);
             
-            logger.info(String.valueOf(promos.size()));
+
             // promos.stream().collect(Collectors.toMap(a->a.getKey(), a->a.getValue().values().stream().findFirst()));
 
             // if( promos.get("111").isPresent())
             // stream().anyMatch(a->a.getValue().keySet().stream().anyMatch(b->b.equals(1)))
-             
-            {
-
-            };
-             
             // .map(a->new Object(){String ItemId=a.getId();int PromoId=getPromoId(a);}).toArray();
-            
         // var len=promos.entrySet().stream(). size();
-
-
-        
         // map<SalesItemEntity,Integer>(a->{
         //     Id:a.getId(),
         //     PromoId:getPromoId(a)

@@ -1,0 +1,21 @@
+{
+    "transactionNumber": "P101100001960",
+    "items": [
+        {
+            "itemCode": "A001000",
+            "group": "1",
+            "qty": 2,
+            "price": 10.0
+        }
+    ],
+    "amount": 0.0,
+    "coupons": null,
+    "refPromos": null,
+    "promotions": [
+        {
+            "jsonBody": "{\"__component\":\"discounts.buy-and-get\",\"BuyItemsType\":\"Product\",\"BuyItems\":\"A001000\",\"BuyQuantity\":2,\"GetItemsType\":\"Product\",\"GetItems\":\"A001000\",\"GetQuantity\":1,\"DiscountType\":\"Percent\",\"Discount\":100,\"SpendAmount\":0.01}",
+            "PromoId": 47,
+            "PromoType": "discounts.buy-and-get"
+        }
+    ]
+}

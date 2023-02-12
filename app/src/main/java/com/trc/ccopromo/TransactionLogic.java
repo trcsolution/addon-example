@@ -1,4 +1,5 @@
 package com.trc.ccopromo;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sap.scco.ap.pos.dao.CDBSession;
 import com.sap.scco.ap.pos.dao.CDBSessionFactory;
 import com.sap.scco.ap.pos.dao.PersistenceManager;
@@ -20,10 +21,13 @@ import com.sap.scco.cs.utilities.ReceiptHelper;
 import com.sap.scco.env.UIEventDispatcher;
 import com.sap.scco.util.CConst;
 import com.trc.ccopromo.models.PromoResponse;
+import com.trc.ccopromo.models.transaction.post.PostTransactionRequest;
+
 import org.slf4j.LoggerFactory;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import com.sap.scco.ap.pos.exception.InconsistentReceiptStateException;
@@ -55,23 +59,7 @@ public class TransactionLogic {
         // dbSession = _dbSession;
     }
 
-    public static void setTransactionAdditionalField(ReceiptEntity receipt, String key, String value) {
-        AdditionalFieldEntity additionalField2 = receipt.getAdditionalField(key);
-        if (additionalField2 == null) {
-            if (value == null)
-                return;
-            additionalField2 = new AdditionalFieldEntity();
-            receipt.addAdditionalField(additionalField2);
-        }
-        additionalField2.setFieldName(key);
-        // additionalField2.setGroupName(com.trc.ccopromo.models.Constants.PROMO_GROUP);
-        if(value==null)
-        additionalField2.setValue("");
-            else
-        additionalField2.setValue(value);
-
-
-    }
+    
     public static void setAdditionalField(SalesItemEntity salesItem, String key, String value) {
         AdditionalFieldEntity additionalField2 = salesItem.getAdditionalField(key);
         if (additionalField2 == null) {
@@ -79,6 +67,21 @@ public class TransactionLogic {
                 return;
             additionalField2 = new AdditionalFieldEntity();
             salesItem.addAdditionalField(additionalField2);
+        }
+        additionalField2.setFieldName(key);
+        additionalField2.setGroupName(com.trc.ccopromo.models.Constants.PROMO_GROUP);
+        if(value==null)
+        additionalField2.setValue("");
+            else
+        additionalField2.setValue(value);
+    }
+    public static void setTransactionAdditionalField(ReceiptEntity receipt, String key, String value) {
+        AdditionalFieldEntity additionalField2 = receipt.getAdditionalField(key);
+        if (additionalField2 == null) {
+            if (value == null)
+                return;
+            additionalField2 = new AdditionalFieldEntity();
+            receipt.addAdditionalField(additionalField2);
         }
         additionalField2.setFieldName(key);
         additionalField2.setGroupName(com.trc.ccopromo.models.Constants.PROMO_GROUP);
@@ -309,7 +312,7 @@ public class TransactionLogic {
                          UpdateLines(receipt, discountItem, lines);
                     }
             }
-            setTransactionAdditionalField(receipt,"IsProcessed","0");
+           
 
         } catch (Exception e) {
         // TODO Auto-generated catch block
@@ -375,13 +378,34 @@ public class TransactionLogic {
             salesItem.setUnitPriceChanged(true);
         // }
     }
-
+    public com.trc.ccopromo.models.PromoRequest MakePromoRequest(ReceiptEntity receipt,ArrayList<Integer> refPromos)
+    {
+        com.trc.ccopromo.models.PromoRequest promorequest = new com.trc.ccopromo.models.PromoRequest();
+        promorequest.items=new ArrayList<com.trc.ccopromo.models.PromoRequestItem>(
+                receipt.getSalesItems().stream().filter(a -> !a.getStatus().equals("3") &&  a.getMaterial() != null).map(item -> 
+                    new com.trc.ccopromo.models.PromoRequestItem(item.getId(),item.getMaterial().getArticleGroup().getId(),item.getQuantity().intValue(),item.getUnitGrossAmount().doubleValue())
+                ).collect(Collectors.toList()));
+        promorequest.transactionNumber=receipt.getId();
+        promorequest.refPromos=refPromos;
+        return promorequest;
+    }
+    public String PostCalculationRequest(com.trc.ccopromo.models.PromoRequest promorequest) throws IOException, InterruptedException
+    {
+        var request = new WebRequest(_addon.getPluginConfig());
+        var response=request.Post("/api/Promo/Calculate", promorequest);
+        return response;
+    }
     public PromoResponse RequestPromo(ReceiptEntity _transaction,ArrayList<Integer> refPromos) throws IOException, InterruptedException {
 
-        ReceiptEntity transaction = _transaction;
+        ReceiptEntity receipt = _transaction;
         logger.info("------RequestPromo------");
-        var request = new WebRequest(_addon.getPluginConfig());
-        return request.Request(transaction,refPromos);
+        com.trc.ccopromo.models.PromoRequest promorequest = this.MakePromoRequest(receipt,refPromos);
+        var response=PostCalculationRequest(promorequest);
+        // var request = new WebRequest(_addon.getPluginConfig());
+        // var response=request.Post("/api/Promo/Calculate", promorequest);
+        ObjectMapper m = new ObjectMapper();
+        PromoResponse resp = m.readValue(response, PromoResponse.class);
+        return resp;//request.Request(receipt,refPromos);
     }
     SalesItemEntity getAdjustmentItem(ReceiptEntity receipt)
     {
@@ -452,5 +476,38 @@ public class TransactionLogic {
         }
 
     }
-
+    void postReceipt(ReceiptEntity receipt) 
+    {
+        PostTransactionRequest requestObj=new PostTransactionRequest();
+        requestObj.data=new com.trc.ccopromo.models.transaction.post.Data();
+        requestObj.data.transactionNumber=receipt.getId();
+        requestObj.data.isPosted=false;
+        requestObj.data.items=receipt.getSalesItems().stream().
+            collect(
+                Collectors.mapping(
+                a->new com.trc.ccopromo.models.transaction.post.Item(a.getId()
+                ,a.getMaterial().getArticleGroup().getId()
+                ,a.getQuantity().doubleValue()
+                ,a.getUnitGrossAmount().doubleValue()
+                ,a.getDiscountAmount().doubleValue()
+                ,a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID)
+            ),Collectors.toList()));
+        var request = new WebRequest(_addon.getPluginConfig());
+        String json;
+        try {
+            //save transaction online
+            json = request.Post("/api/Promo/Save", requestObj);
+            //save promos into transaction
+            var mapper = new ObjectMapper();
+            var promos=mapper.readValue("{\"p\":"+json+"}", com.trc.ccopromo.models.storedpromo.StoredPromos.class);
+            for (int i = 0; i < promos.storedPromos.size(); i++) {
+                var s1=mapper.writeValueAsString(promos.storedPromos.get(i));
+                setTransactionAdditionalField(receipt,"Promo:"+String.valueOf(i) ,s1);
+            }
+        } catch (IOException | InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        // request.PostTransaction(receipt);
+    }
 }
