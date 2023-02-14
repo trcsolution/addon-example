@@ -244,6 +244,27 @@ public class TrcPromoAddon extends BasePlugin {
             TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
             ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
 
+            
+            // var salesItem=result.getSalesItems().get(0);
+            // // salesItem.setUnitGrossAmount(BigDecimal.valueOf(10));
+
+
+
+            // BigDecimal descountAmount=salesItem.getDiscountAmount();
+            //  var refSalesItem=salesItem.getReferenceSalesItem();
+            //  var refUnitPrice=refSalesItem.getUnitGrossAmount();
+            //  var qty=salesItem.getQuantity();
+            //  BigDecimal amount=BigDecimal.valueOf(9);//refUnitPrice.multiply(qty).subtract(descountAmount).divide(qty);
+            //  var unitGrossAmount=amount;
+            //  var unitNetAmount=amount;
+            //  salesItem.setReferenceSalesItem(null);
+            //  salesItem.setUnitNetAmount(unitNetAmount);
+            //  salesItem.setUnitGrossAmount(unitGrossAmount);
+            //  transactionLogic.SetLineDiscount(salesItem,BigDecimal.ZERO);
+            //   salesItem.setUnitPriceChanged(true);
+
+
+
             // ReceiptEntity receipt0 = (ReceiptEntity) args[0];
             logic.moveReturnedReceiptToCurrentReceipt(receiptWithAdjustmentItems, result);
         }
