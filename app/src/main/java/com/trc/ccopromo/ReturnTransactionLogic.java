@@ -87,7 +87,8 @@ public class ReturnTransactionLogic {
                     }
                     return null;
                 }
-                ).collect(Collectors.toList());
+                ).
+                collect(Collectors.toList()).stream().filter(a->a!=null).collect(Collectors.toList());
     }
 
     com.trc.ccopromo.models.PromoResponse getTransactionDiscounts(ReceiptEntity receipt,List<com.trc.ccopromo.models.storedpromo.StoredPromo> usedpromos) throws IOException, InterruptedException
@@ -143,8 +144,12 @@ public class ReturnTransactionLogic {
                     refAmount=refAmount.subtract(linerefundamount);
                     var linediscount=entry.getGrossAmount().subtract(linerefundamount);
 
-                    TransactionLogic.setAdditionalField(entry, "TRC_Discount",linediscount.toString());
-                    this.transactionlogic.SetLineDiscount(entry,linediscount);
+                    if(linediscount.compareTo(BigDecimal.ZERO)>0)
+                    {
+                        TransactionLogic.setAdditionalField(entry, "TRC_Discount",linediscount.toString());
+                        this.transactionlogic.SetLineDiscount(entry,linediscount);
+
+                    }
                 }
 
             }
