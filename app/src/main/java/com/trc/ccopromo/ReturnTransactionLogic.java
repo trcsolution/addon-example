@@ -115,46 +115,62 @@ public class ReturnTransactionLogic {
         var reminingDescounts=getTransactionDiscounts(sourceReceipt,promotions);
         var promoDiscount=Double.parseDouble(reminingDescounts.discount);
         // reminingDescounts.itemDiscounts.
-
         
         
-        double spentAmount=actualOriginalReceipt.getPaymentGrossAmount().doubleValue();
-        double reminingAmount=sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum();
-        reminingAmount=reminingAmount-promoDiscount;
-        BigDecimal refundingAmount=BigDecimal.valueOf(spentAmount-reminingAmount);
-        if(refundingAmount.compareTo(BigDecimal.ZERO)<0)
-             refundingAmount=BigDecimal.ZERO;
-        BigDecimal planingRefundingAmount=BigDecimal.valueOf(targetReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3")).mapToDouble(a->a.getGrossAmount().doubleValue()).sum());
-        BigDecimal refAmount=refundingAmount;
-        for (SalesItemEntity entry : targetReceipt.getSalesItems()) {
-            if(!entry.getStatus().equalsIgnoreCase("3"))
-            {
-                if(refundingAmount.compareTo(BigDecimal.ZERO)==0)
-                    this.transactionlogic.SetLineDiscount(entry,entry.getGrossAmount());
-                else
-                {
-                    var k=entry.getGrossAmount().divide(planingRefundingAmount,MathContext.DECIMAL32);
-                    var linerefundamount=refundingAmount.multiply(k).setScale(2,RoundingMode.HALF_UP);
-                    // linerefundamount=linerefundamount
-                    if(refAmount.compareTo(linerefundamount)<0)
-                    {
-                        linerefundamount=linerefundamount.subtract(linerefundamount.subtract(refAmount));
-                        refAmount=BigDecimal.ZERO;
-                    }
-                    refAmount=refAmount.subtract(linerefundamount);
-                    var linediscount=entry.getGrossAmount().subtract(linerefundamount);
 
-                    if(linediscount.compareTo(BigDecimal.ZERO)>0)
+        if(targetReceipt.getSalesItems().size()>0)
+        {
+        
+                double spentAmount=actualOriginalReceipt.getPaymentGrossAmount().doubleValue();
+                double reminingAmount=sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum();
+                reminingAmount=reminingAmount-promoDiscount;
+                BigDecimal refundingAmount=BigDecimal.valueOf(spentAmount-reminingAmount);
+                if(refundingAmount.compareTo(BigDecimal.ZERO)<0)
+                    refundingAmount=BigDecimal.ZERO;
+                BigDecimal planingRefundingAmount=BigDecimal.valueOf(targetReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3")).mapToDouble(a->a.getGrossAmount().doubleValue()).sum());
+                BigDecimal refAmount=refundingAmount;
+                for (SalesItemEntity entry : targetReceipt.getSalesItems()) {
+                    if(!entry.getStatus().equalsIgnoreCase("3"))
                     {
-                        TransactionLogic.setAdditionalField(entry, "TRC_Discount",linediscount.toString());
-                        this.transactionlogic.SetLineDiscount(entry,linediscount);
+                        if(refundingAmount.compareTo(BigDecimal.ZERO)==0)
+                        {
+                            this.transactionlogic.SetLineDiscount(entry,entry.getGrossAmount());
+                            TransactionLogic.setAdditionalField(entry, "TRC_Discount",entry.getGrossAmount().toString());
+
+                        }
+                        else
+                        {
+                            var k=entry.getGrossAmount().divide(planingRefundingAmount,MathContext.DECIMAL32);
+                            var linerefundamount=refundingAmount.multiply(k).setScale(2,RoundingMode.HALF_UP);
+                            // linerefundamount=linerefundamount
+                            if(refAmount.compareTo(linerefundamount)<0)
+                            {
+                                linerefundamount=linerefundamount.subtract(linerefundamount.subtract(refAmount));
+                                refAmount=BigDecimal.ZERO;
+                            }
+                            refAmount=refAmount.subtract(linerefundamount);
+                            var linediscount=entry.getGrossAmount().subtract(linerefundamount);
+
+                            TransactionLogic.setAdditionalField(entry, "TRC_Discount",linediscount.toString());
+                            if(linediscount.compareTo(BigDecimal.ZERO)>0)
+                            {
+                                this.transactionlogic.SetLineDiscount(entry,linediscount);
+
+                            }
+                        }
 
                     }
+                    
                 }
-
-            }
-            
+                calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);
+                UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, targetReceipt);
         }
+
+        transactionlogic.ResetSalesItems(sourceReceipt);
+        transactionlogic.ApplyPromoDiscountsToTransaction(reminingDescounts, sourceReceipt);
+        calculationPosService.calculate(sourceReceipt, EntityActions.CHECK_CONS);
+        UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, sourceReceipt);
+
 
         
 
@@ -224,8 +240,8 @@ public class ReturnTransactionLogic {
         // });
 
         
-        calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);
-        UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, targetReceipt);
+        // calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);
+        // UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, targetReceipt);
     }
     // public static List<com.trc.ccopromo.models.ReturnItemDiscount> discounetItems=null;
 

@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -294,6 +295,33 @@ public class TransactionLogic {
     }
     BigDecimal _correctionAmount=BigDecimal.ZERO;
 
+    void ApplyPromoDiscount(ReceiptEntity receipt,List<String> items,int PromoId,Double discount)
+    {
+         
+        var salesItems=receipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3") && items.contains(a.getId()));
+        var totalAmount=salesItems.mapToDouble(a->a.getGrossAmount().doubleValue()).sum();
+        salesItems=receipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3") && items.contains(a.getId()));
+        salesItems.forEach(salesItem->
+        {
+            var k=salesItem.getGrossAmount().doubleValue()/totalAmount;
+            var linediscount=BigDecimal.valueOf(k*discount);
+            SetLineDiscount(salesItem,linediscount);
+            setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_ID,Integer.toString(PromoId));
+        //    setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_TYPE,Integer.toString(discount.promoType));
+
+            // logger.info(String.valueOf(k));
+        });
+    }
+    public  void ApplyPromoDiscountsToTransaction(PromoResponse promoResp,ReceiptEntity receipt)
+    {
+        calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
+        var promoDiscounts=promoResp.itemDiscounts.stream().collect(Collectors.groupingBy(a->a.promoId,Collectors.summingDouble(a->a.discount)));
+        promoDiscounts.keySet().forEach(a->
+                {
+                    List<String> items=promoResp.itemDiscounts.stream().filter(b->b.promoId==a.intValue()).map(b->b.itemCode).collect(Collectors.toList());
+                    ApplyPromoDiscount(receipt,items,a,promoDiscounts.get(a));
+                });
+    }
     public void CalculatePromotios(final ReceiptEntity receipt) throws IOException, InterruptedException {
         try {
             ResetSalesItems(receipt);
@@ -302,15 +330,25 @@ public class TransactionLogic {
                 if(promos.itemDiscounts!=null)
                     if(!promos.itemDiscounts.isEmpty())
             {
-                    calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
-                    _correctionAmount=BigDecimal.ZERO;
-                    for(var discountItem:promos.itemDiscounts)
-                    {
-                       // discountItem.promoId,
-                        // BigDecimal discount=BigDecimal.valueOf(discountItem.discount);
-                        var lines=receipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3") && a.getId().equals(discountItem.itemCode)).map(a->a.getExternalId()).toArray(String[]::new);
-                         UpdateLines(receipt, discountItem, lines);
-                    }
+                ApplyPromoDiscountsToTransaction(promos,receipt);
+                // calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
+                // var promoDiscounts=promos.itemDiscounts.stream().collect(Collectors.groupingBy(a->a.promoId,Collectors.summingDouble(a->a.discount)));
+                // promoDiscounts.keySet().forEach(a->
+                // {
+                //     List<String> items=promos.itemDiscounts.stream().filter(b->b.promoId==a.intValue()).map(b->b.itemCode).collect(Collectors.toList());
+                //     ApplyPromoDiscount(receipt,items,a,promoDiscounts.get(a));
+                // });
+
+
+                    // calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
+                    // _correctionAmount=BigDecimal.ZERO;
+                    // for(var discountItem:promos.itemDiscounts)
+                    // {
+                    //    // discountItem.promoId,
+                    //     // BigDecimal discount=BigDecimal.valueOf(discountItem.discount);
+                    //     var lines=receipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3") && a.getId().equals(discountItem.itemCode)).map(a->a.getExternalId()).toArray(String[]::new);
+                    //      UpdateLines(receipt, discountItem, lines);
+                    // }
             }
            
 

@@ -114,7 +114,7 @@ public class TrcPromoAddon extends BasePlugin {
 
     @Override
     public String getVersion() {
-        return "2.0.6";
+        return "2.0.7";
     }
 
     @Override
@@ -213,6 +213,26 @@ public class TrcPromoAddon extends BasePlugin {
 
 
 
+    @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "startReturn", where = PluginAt.POSITION.AFTER)
+    public Object startReturn(Object proxy, Object[] args, Object ret, StackTraceElement caller)
+    throws BreakExecutionException, IOException, InterruptedException {
+        ReturnReceiptObject result = (ReturnReceiptObject) ret;
+        if(this.getPluginConfig().getAdvreturn())
+        {
+
+            ReceiptEntity targetReceipt = result.getIndividualItemsReceipt();
+            ReceiptEntity sourceReceipt = result.getSourceReceipt();
+            if (targetReceipt != null) {
+                TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+                ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
+    
+                logic.ItemForReturn(result);
+                // logic.PickUpPromoLine(result);
+                // PickUpPromoTransaction(result);
+            }
+        }
+        return result;
+    }
     @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveSalesItemByQuantity", where = PluginAt.POSITION.AFTER)
     public Object moveSalesItemByQuantity(Object proxy, Object[] args, Object ret, StackTraceElement caller)
             throws BreakExecutionException, IOException, InterruptedException {
