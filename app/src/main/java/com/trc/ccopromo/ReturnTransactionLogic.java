@@ -1,5 +1,6 @@
 package com.trc.ccopromo;
 
+import org.apache.poi.hpsf.Decimal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Function;
 import com.sap.scco.ap.pos.dao.ReceiptManager;
 import com.sap.scco.ap.pos.entity.AdditionalFieldEntity;
+import com.sap.scco.ap.pos.entity.ReceiptCalculationMetaData;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
 import com.sap.scco.ap.pos.entity.SalesItemEntity;
 import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
@@ -114,6 +116,16 @@ public class ReturnTransactionLogic {
         var promotions=getPromotionsFromAdditionalItms(actualOriginalReceipt);
         var reminingDescounts=getTransactionDiscounts(sourceReceipt,promotions);
         var promoDiscount=Double.parseDouble(reminingDescounts.discount);
+
+        // var discountSource=sourceReceipt.getDiscountAmount();
+        // var discountOriginal=actualOriginalReceipt.getDiscountAmount();
+        // sourceReceipt.setDiscountAmount(discountOriginal);
+        // var s1=String.valueOf(discountSource);
+        // var s2=String.valueOf(discountOriginal);
+        // logger.info(s1);
+        // logger.info(s2);
+
+        
         // reminingDescounts.itemDiscounts.
         
         
@@ -126,7 +138,8 @@ public class ReturnTransactionLogic {
                 double headerLevelDiscount=actualGrossTotalAmount-spentAmount;
 
                 double reminingAmount=sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum()
-                    -headerLevelDiscount;
+                    // -headerLevelDiscount
+                    ;
 
                 reminingAmount=reminingAmount-promoDiscount;
                 BigDecimal refundingAmount=BigDecimal.valueOf(spentAmount-reminingAmount);
@@ -173,7 +186,48 @@ public class ReturnTransactionLogic {
 
         transactionlogic.ResetSalesItems(sourceReceipt);
         transactionlogic.ApplyPromoDiscountsToTransaction(reminingDescounts, sourceReceipt);
+        
+        
+        
+
+
         calculationPosService.calculate(sourceReceipt, EntityActions.CHECK_CONS);
+
+
+        var totalrows=BigDecimal.valueOf(sourceReceipt.getSalesItems().stream().filter(a->a.getStatus().compareTo("3")!=0).mapToDouble(a->{
+            return a.getGrossAmount().subtract(a.getDiscountAmount()).doubleValue();
+        }).sum());
+        
+        var discountOriginal=actualOriginalReceipt.getDiscountAmount();
+
+        // sourceReceipt.setDiscountAmount(discountOriginal);
+        sourceReceipt.setPercentageDiscount(false);
+
+        if(totalrows.compareTo(BigDecimal.ZERO)==0)
+            discountOriginal=BigDecimal.ZERO;
+
+        // sourceReceipt.setDiscountPurposeCode("1000");
+        sourceReceipt.setDiscountAmount(discountOriginal);
+
+
+
+
+
+        sourceReceipt.setPaymentGrossAmountWithoutReceiptDiscount(totalrows);
+        sourceReceipt.setPaymentGrossAmount(totalrows.subtract(discountOriginal));
+        // sourceReceipt.setPaymentGrossAmountWithoutReceiptDiscount(BigDecimal.valueOf(16));
+        // sourceReceipt.setPaymentGrossAmount(BigDecimal.valueOf(19));
+
+
+        // var newgrossAmount=sourceReceipt.getTotalGrossAmount().subtract(actualOriginalReceipt.getDiscountAmount());
+        
+        //  sourceReceipt.setTotalGrossAmount(BigDecimal.valueOf(15));
+        // setTotalGrossAmount(BigDecimal.valueOf(15));
+        // sourceReceipt.prin
+// 
+        // calculationPosService.calculate(sourceReceipt, EntityActions.CHECK_CONS);
+
+
         UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, sourceReceipt);
     }
 

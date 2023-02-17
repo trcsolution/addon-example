@@ -89,7 +89,7 @@ public class TrcPromoAddon extends BasePlugin {
     // private PriceDiscountManager priceDiscountManager;
     // private MaterialPosService materialPosService;
     // private PosService posService;
-    private ReceiptPosService receiptPosService;
+    // private ReceiptPosService receiptPosService;
     private ReceiptManager receiptManager;
     // private SalesItemManager salesItemManager;
     private CalculationPosService calculationPosService;
@@ -109,7 +109,7 @@ public class TrcPromoAddon extends BasePlugin {
 
     @Override
     public String getVersion() {
-        return "2.0.7";
+        return "2.0.8";
     }
 
     @Override
@@ -117,7 +117,7 @@ public class TrcPromoAddon extends BasePlugin {
         currentlyCalculating.set(false);
         this.dbSession = CDBSessionFactory.instance.createSession();
         this.receiptManager = new ReceiptManager(dbSession);
-        this.receiptPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(ReceiptPosService.class, dbSession);
+        // this.receiptPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(ReceiptPosService.class, dbSession);
         this.calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,dbSession);
         // this.salesItemPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(SalesItemPosService.class,dbSession);
         super.startup();
