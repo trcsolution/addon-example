@@ -122,7 +122,12 @@ public class ReturnTransactionLogic {
         {
         
                 double spentAmount=actualOriginalReceipt.getPaymentGrossAmount().doubleValue();
-                double reminingAmount=sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum();
+                double actualGrossTotalAmount=actualOriginalReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum();
+                double headerLevelDiscount=actualGrossTotalAmount-spentAmount;
+
+                double reminingAmount=sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum()
+                    -headerLevelDiscount;
+
                 reminingAmount=reminingAmount-promoDiscount;
                 BigDecimal refundingAmount=BigDecimal.valueOf(spentAmount-reminingAmount);
                 if(refundingAmount.compareTo(BigDecimal.ZERO)<0)
