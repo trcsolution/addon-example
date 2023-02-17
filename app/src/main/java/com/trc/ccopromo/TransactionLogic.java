@@ -278,24 +278,6 @@ public class TransactionLogic {
                     if(!promos.itemDiscounts.isEmpty())
             {
                 ApplyPromoDiscountsToTransaction(promos,receipt);
-                // calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
-                // var promoDiscounts=promos.itemDiscounts.stream().collect(Collectors.groupingBy(a->a.promoId,Collectors.summingDouble(a->a.discount)));
-                // promoDiscounts.keySet().forEach(a->
-                // {
-                //     List<String> items=promos.itemDiscounts.stream().filter(b->b.promoId==a.intValue()).map(b->b.itemCode).collect(Collectors.toList());
-                //     ApplyPromoDiscount(receipt,items,a,promoDiscounts.get(a));
-                // });
-
-
-                    // calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
-                    // _correctionAmount=BigDecimal.ZERO;
-                    // for(var discountItem:promos.itemDiscounts)
-                    // {
-                    //    // discountItem.promoId,
-                    //     // BigDecimal discount=BigDecimal.valueOf(discountItem.discount);
-                    //     var lines=receipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3") && a.getId().equals(discountItem.itemCode)).map(a->a.getExternalId()).toArray(String[]::new);
-                    //      UpdateLines(receipt, discountItem, lines);
-                    // }
             }
            
 
