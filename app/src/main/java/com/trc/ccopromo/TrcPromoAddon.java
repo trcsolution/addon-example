@@ -39,13 +39,10 @@ import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collector;
-// import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-// import com.google.gson.Gson; 
-// import com.google.gson.GsonBuilder;
 import net.sf.json.JSONObject;
 
 import java.io.IOException;
@@ -81,13 +78,7 @@ public class TrcPromoAddon extends BasePlugin {
     public static final String SPECIAL_DISCOUNT_SERVICE_APIKEY = "SPECIAL_DISCOUNT_SERVICE_APIKEY";
     public static final String SPECIAL_DISCOUNT_SERVICE_SECURE = "SPECIAL_DISCOUNT_SERVICE_SECURE";
     public static final String SPECIAL_DISCOUNT_SERVICE_ADVANCED_RETURN = "SPECIAL_DISCOUNT_SERVICE_ADVANCED_RETURN";
-    // public static final String SPECIAL_DISCOUNT_SERVICE_USERNAME = "SPECIAL_DISCOUNT_SERVICE_USERNAME";
-    // public static final String SPECIAL_DISCOUNT_SERVICE_PASSWORD = "SPECIAL_DISCOUNT_SERVICE_PASSWORD";
-    // public static final String TRC_AUTOMATIC_DISCOUNTS_APPLIED = "TRC_AUTOMATIC_DISCOUNTS_APPLIED";
-    // public static final String TRC_DISCOUNT_MANUALLY_CHANGED = "TRC_DISCOUNT_MANUALLY_CHANGED";
-    // public static final String TRC_DISCOUNT_ID = "TRC_DISCOUNT_ID";
-    // public static final String TRC_DISCOUNT_NAME = "TRC_DISCOUNT_NAME";
-
+    
     private static Logger logger = LoggerFactory.getLogger(TrcPromoAddon.class);
     private static AtomicBoolean currentlyCalculating = new AtomicBoolean(false);
     // private static final HttpClient httpClient = HttpClient.newBuilder()
@@ -165,61 +156,11 @@ public class TrcPromoAddon extends BasePlugin {
         currentlyCalculating.set(false);
     }
 
-    // @PluginAt(pluginClass = CalculationPosService.class, method = "calculate", where = PluginAt.POSITION.AFTER)
-    // public void afterCalculation(Object proxy, Object[] args, Object caller,Object obj1) throws InconsistentReceiptStateException {
-    //     try {
-    //         if(args.length==3)
-    //             if(BaseEntity.EntityActions.CREATE==args[1] || BaseEntity.EntityActions.UPDATE==args[1])
-    //         {
-    //         // if(LockCalculation()) 
-    //         {
-
-    //             ReceiptEntity receipt = (ReceiptEntity) args[0];
-    //             if(receipt.getStatus()!="6")
-    //             {
-
-    //                 // var discountAmount=BigDecimal.valueOf(5);
-    //                 // var salesItem=receipt.getSalesItems().get(0);
-
-    //                 // var elements=salesItem.getDiscountElements();
-    //                 // DiscountElementEntity discount=new DiscountElementEntity();
-    //                 // discount.setDiscountAmount(discountAmount);
-    //                 // discount.setManually(true);
-    //                 // receipt.addDiscountElement(discount);
-    //                 // var amount=salesItem.getDiscountAmount();
-    //                 // var elements=salesItem.getDiscountElements();
-    //                 // var disccode=salesItem.getDiscountPurposeCode();
-    //                 // logger.info(disccode);
     
-    //                 // BigDecimal currentDIscount=BigDecimal.valueOf(3);
-    //                 // if(elements.size()>0)
-    //                 // currentDIscount=currentDIscount.add(elements.get(0).getDiscountAmount());
-    
-    //                 TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-    //                 transactionLogic.CalculatePromotios(receipt);
-    //                 // transactionLogic.SetLineDiscount(salesItem, currentDIscount);
-    
-    
-    //                 // receipt.getDiscountElements().add(disc);
-    //                 // calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
-    //                 // UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, receipt);
-    //             }
-                
-    //             // unlockCalculation();
-    //         }
-    //     }
-           
-    //     } catch (Exception e) {
-    //         // unlockCalculation();
-    //         logger.error("ERROR CALCULATING", e);
-    //         // currentlyCalculating.set(false);
-    //     }
-    // }
     @PluginAt(pluginClass = CalculationPosService.class, method = "calculate", where = PluginAt.POSITION.BEFORE)
     public void applyPromotions(Object proxy, Object[] args, StackTraceElement caller) throws InconsistentReceiptStateException {
         try {
             ReceiptEntity receipt = (ReceiptEntity) args[0];
-            // logger.info("22222222222222222");
             if (args.length == 4 && ReceiptEntity.Status.NEW.equals(receipt.getStatus()) && receipt.getPaymentItems().isEmpty()) 
             {
             if(LockCalculation()) 
@@ -282,10 +223,7 @@ public class TrcPromoAddon extends BasePlugin {
             if (targetReceipt != null) {
                 TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
                 ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
-    
                 logic.ItemForReturn(result);
-                // logic.PickUpPromoLine(result);
-                // PickUpPromoTransaction(result);
             }
         }
         return result;
@@ -302,10 +240,7 @@ public class TrcPromoAddon extends BasePlugin {
             if (targetReceipt != null) {
                 TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
                 ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
-    
                 logic.ItemForReturn(result);
-                // logic.PickUpPromoLine(result);
-                // PickUpPromoTransaction(result);
             }
         }
         return result;
@@ -320,146 +255,9 @@ public class TrcPromoAddon extends BasePlugin {
             ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
             TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
             ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
-
-            
-            // var salesItem=result.getSalesItems().get(0);
-            // // salesItem.setUnitGrossAmount(BigDecimal.valueOf(10));
-
-
-
-            // BigDecimal descountAmount=salesItem.getDiscountAmount();
-            //  var refSalesItem=salesItem.getReferenceSalesItem();
-            //  var refUnitPrice=refSalesItem.getUnitGrossAmount();
-            //  var qty=salesItem.getQuantity();
-            //  BigDecimal amount=BigDecimal.valueOf(9);//refUnitPrice.multiply(qty).subtract(descountAmount).divide(qty);
-            //  var unitGrossAmount=amount;
-            //  var unitNetAmount=amount;
-            //  salesItem.setReferenceSalesItem(null);
-            //  salesItem.setUnitNetAmount(unitNetAmount);
-            //  salesItem.setUnitGrossAmount(unitGrossAmount);
-            //  transactionLogic.SetLineDiscount(salesItem,BigDecimal.ZERO);
-            //   salesItem.setUnitPriceChanged(true);
-
-
-
-            // ReceiptEntity receipt0 = (ReceiptEntity) args[0];
             logic.moveReturnedReceiptToCurrentReceipt(receiptWithAdjustmentItems, result);
         }
         return result;
     }
-
-
-    
-
-    
-    
-    // @PluginAt(pluginClass = ReceiptPosService.class, method = "addSalesItem", where = PluginAt.POSITION.AFTER)
-    // public void addSalesItem(Object proxy, Object[] args, Object objItem, Object obj)
-    //         throws IOException, InterruptedException {
-    //     ReceiptEntity receipt = (ReceiptEntity) args[0];
-    //     TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-    //     transactionLogic.CalculatePromotios(receipt);
-    //     // sendMessageToUi("sasa","description");
-    // }
-
-    // @PluginAt(pluginClass = ReceiptPosService.class, method = "updateSalesItem", where = PluginAt.POSITION.AFTER)
-    // public void updateSalesItem(Object proxy, Object[] args, StackTraceElement caller, Object obj)
-    //         throws IOException, InterruptedException {
-    //     ReceiptEntity receipt = (ReceiptEntity) args[0];
-    //     TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-    //     transactionLogic.CalculatePromotios(receipt);
-    // }
-    
-    // void SalesItem
-    // @PluginAt(pluginClass = ReceiptChangeNotifierPosService.class, method = "notifyListenersOnSalesItemVoided", where = PluginAt.POSITION.AFTER)
-    // public void notifyListenersOnSalesItemVoided(Object proxy, Object[] args, Object objItem, Object obj)
-    //         throws IOException, InterruptedException {
-    //             if(args.length>1)
-    //                 if (((Object) args[1]).getClass().equals(SalesItemEntity.class)) 
-    //             {
-    //                 TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-    //                 transactionLogic.CalculatePromotios(((SalesItemEntity)args[1]).getReceipt());
-    //             }
-    // }
-    
-
-    
-    
-
-    
-    
-    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "startReturn", where = PluginAt.POSITION.AFTER)
-    // public com.sap.scco.ap.returnreceipt.ReturnReceiptObject startReturn(Object proxy, Object[] args, com.sap.scco.ap.returnreceipt.ReturnReceiptObject ret, Object caller) throws BreakExecutionException {
-    //     return ret;
-    // }
-    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "returnIndividualArticles", where = PluginAt.POSITION.BEFORE)
-    // public com.sap.scco.ap.returnreceipt.ReturnReceiptObject returnIndividualArticles(Object proxy, Object[] args, Object obj) throws BreakExecutionException {
-    //     return null;
-    // }
-    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "returnIndividualArticles", where = PluginAt.POSITION.AFTER)
-    // public com.sap.scco.ap.returnreceipt.ReturnReceiptObject returnIndividualArticles(Object proxy, Object[] args, com.sap.scco.ap.returnreceipt.ReturnReceiptObject ret, Object caller) throws BreakExecutionException {
-    //     return null;
-    // }
-    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "startReturn", where = PluginAt.POSITION.AFTER)
-    // public com.sap.scco.ap.returnreceipt.ReturnReceiptObject startReturn(Object proxy, Object[] args, com.sap.scco.ap.returnreceipt.ReturnReceiptObject ret, Object caller) throws BreakExecutionException {
-    // // public com.sap.scco.ap.returnreceipt.ReturnReceiptObject startReturn(Object proxy, Object[] args, Object ret, Object ret1, Object ret2) throws BreakExecutionException {
-    //     var receipt=ret.getSourceReceipt();
-    //     var salesItems=receipt.getSalesItems();
-    //     var salesItem=salesItems.get(0);
-    //     salesItem.setGrossAmount(BigDecimal.valueOf(20));
-
-    //     salesItem.setPercentageDiscount(false);
-    //     salesItem.setDiscountAmount(BigDecimal.valueOf(0));
-    //     salesItem.setDiscountPurposeCode(com.trc.ccopromo.models.Constants.PROMO_DISCOUNT_CODE);
-    //     salesItem.setMarkChanged(true);
-    //     salesItem.setItemDiscountChanged(true);
-    //     salesItem.setDiscountManuallyChanged(true);
-
-    //     calculationPosService.calculate(receipt, BaseEntity.EntityActions.CHECK_CONS);
-    //     UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, receipt);
-    //     // ReceiptEntity result = (ReceiptEntity) ret;
-    //     // if (args.length == 8) {
-    //         // ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
-    //         // if(LockCalculation())
-    //         // {
-    //             // TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-    //             // transactionLogic.copyAdjustmentItems(receiptWithAdjustmentItems, result);
-    //             // unlockCalculation();
-    //             // ignoreCalculation=true;
-    //         // }
-    //     // }
-    //     return ret;
-    // }
-
-    // @PluginAt(pluginClass=IReceiptManager.class, method="voidSalesItem", where=POSITION.AFTER)
-	// public void pluginAtAfterExample(Object proxy, Object[] args, Object returnValue, StackTraceElement callStack) {
-	// 	//Your code
-    //     logger.info("ok");
-	// }
-
-    // @JSInject(targetScreen="sales")
-	// public String injectJSToSalesScreenExample(){
-	// 	return "alert(\"Hello World from Plugin!\");";
-	// }
-    // @PluginAt(pluginClass=IReceiptManager.class, method="finishReceipt", where=POSITION.BEFORE)
-	// public void pluginAtBeforeExample(Object proxy, Object[] args, StackTraceElement callStack) throws BreakExecutionException {
-	// 	//Your code
-    //     logger.info("ok");
-	// }
-    
-    // private void sendMessageToUi(String titleKey, String titleMessage) {
-    //     JSONObject jsonObject = new JSONObject();
-    //     jsonObject.put("title", titleKey);
-    //     jsonObject.put("message", titleMessage);
-    //     BroadcasterHolder.INSTANCE.getBroadcaster().broadcastPluginEventForPath("SHOW_MESSAGE_BOX", jsonObject);    
-    // }
-
-	
-	// @PluginAt(pluginClass=IReceiptManager.class, method="finishReceipt", where=POSITION.AFTER)
-	// public void pluginAtAfterExample(Object proxy, Object[] args, Object returnValue, StackTraceElement callStack) {
-	// 	//Your code
-    //     logger.info("ok");
-	// }
-
 
 }

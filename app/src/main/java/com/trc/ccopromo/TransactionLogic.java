@@ -110,30 +110,7 @@ public class TransactionLogic {
         UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, reciept);
 
     }
-    void addAdjustmentItem(ReceiptEntity targetReceipt,BigDecimal amount)
-    {
-        var _adjustmentItem=getAdjustmentItem(targetReceipt);
-        // targetReceipt.getSalesItems().stream().filter(a->a.getId().equals(com.trc.ccopromo.models.Constants.PROMO_ADJUSTMENT)).findFirst();
-
-            if(_adjustmentItem!=null)
-            {
-                SalesItemEntity adjustmentItem=_adjustmentItem;
-                SetUnitAmount(amount, adjustmentItem);
-                // EntityActions.CHECK_CONS
-                calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);
-                return;
-            }
-
-        SalesItemEntity adjustmentItem=com.sap.scco.ap.pos.dao.EntityFactory.INSTANCE.createSpecialSalesItemEntity("Promo Adjustment", BigDecimal.valueOf(10), 
-            targetReceipt.getSalesItems().get(0).getTaxRateTypeCode(), null);
-            SetUnitAmount(amount, adjustmentItem);
-            adjustmentItem.setUnitPriceChanged(true);
-            adjustmentItem.setId(com.trc.ccopromo.models.Constants.PROMO_ADJUSTMENT);
-            adjustmentItem.setQuantity(BigDecimal.ONE);
-            targetReceipt.addSalesItem(adjustmentItem);
-            calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);
-            UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, targetReceipt);
-    }
+    
 
     private void SetUnitAmount(BigDecimal amount, SalesItemEntity adjustmentItem) {
         adjustmentItem.setUnitNetAmount(amount);
@@ -238,52 +215,7 @@ public class TransactionLogic {
 
     }
 
-    public void PickUpPromoTransaction(ReturnReceiptObject returnReciept) throws IOException, InterruptedException
-    {
-        ReceiptEntity targetReceipt = returnReciept.getIndividualItemsReceipt();
-        ReceiptEntity sourceReceipt = returnReciept.getSourceReceipt();
-        ReceiptEntity actualOriginalReceipt = LoadReceipt(returnReciept.getSourceReceipt().getId());
-        if(CheckAdjustItemChanging(sourceReceipt,targetReceipt))
-          return;
-
-
-        var refPromos=new ArrayList<Integer>();
-        actualOriginalReceipt.getSalesItems().stream().forEach(a->
-        {
-            var addField=a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID);
-            if(addField!=null)
-                refPromos.add(Integer.valueOf(addField.getValue()));
-        });
-        
-        //has any promo
-        if(!refPromos.isEmpty())
-        {
-            var promos = RequestPromo(sourceReceipt,refPromos);
-            var newDiscount=BigDecimal.valueOf(Double.parseDouble(promos.discount));
-            
-            var actualOrigAmount=actualOriginalReceipt.getPaymentGrossAmount();
-            var sourceAmount=sourceReceipt.getTotalGrossAmount();
-            var adjustmentItem=getAdjustmentItem(targetReceipt);
-            if(adjustmentItem!=null)
-                {
-                   
-                    SetUnitAmount(BigDecimal.ZERO,adjustmentItem);
-                    calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);
-                }
-
-            var targetAmount=targetReceipt.getTotalGrossAmount();
-            var promoAdjuction=actualOrigAmount
-                .subtract(sourceAmount.
-                    subtract(newDiscount)).
-                        subtract(targetAmount);
-            logger.info(promoAdjuction.toString());
-
-            ResetReceiptsSales(sourceReceipt);
-            ResetReceiptsSales(targetReceipt);
-            addAdjustmentItem(targetReceipt,promoAdjuction);
-
-        }
-    }
+    
 
     public void ResetSalesItems(final ReceiptEntity receipt)
     {
@@ -465,75 +397,7 @@ public class TransactionLogic {
         PromoResponse resp = m.readValue(response, PromoResponse.class);
         return resp;//request.Request(receipt,refPromos);
     }
-    SalesItemEntity getAdjustmentItem(ReceiptEntity receipt)
-    {
-        Optional<SalesItemEntity> item=receipt.getSalesItems().stream().filter(a->a.getMaterial()==null && !a.getStatus().equals("3")).findAny();
-        return item.isEmpty()?null:item.get();
-    }
-    SalesItemEntity getFirstNonAdjustItem(ReceiptEntity receipt)
-    {
-        Optional<SalesItemEntity> item=receipt.getSalesItems().stream().filter(a->a.getMaterial()!=null && !a.getStatus().equals("3")).findAny();
-        return item.isEmpty()?null:item.get();
-    }
-    void copyAdjustmentItems(ReceiptEntity sourcereceipt,ReceiptEntity targetReceipt)
-    {
-        var adjustItem=sourcereceipt.getSalesItems().stream().filter(a->a.getMaterial()==null).findFirst();
-        if(!adjustItem.isEmpty())
-        {
-            // targetreceipt.getSalesItems().add(adjustItem.get());
-
-            targetReceipt.getSalesItems().stream().filter(a->a.getMaterial()!=null && !a.getStatus().equals("3") ).forEach(salesItem->
-            {
-                var refSalesItem=salesItem.getReferenceSalesItem();
-                var grossAmount=refSalesItem.getGrossAmount();
-                var newAmount=refSalesItem.getNetAmount();
-                var unitGrossAmount=refSalesItem.getUnitGrossAmount();
-                var unitNewAmount=refSalesItem.getUnitNetAmount();
-                salesItem.setReferenceSalesItem(null);
-                resetDiscountToSalesItem(salesItem);
-
-                salesItem.setDiscountPercentage(BigDecimal.ZERO);
-                salesItem.setPercentageDiscount(false);
-                salesItem.setDiscountAmount(BigDecimal.ZERO);
-                salesItem.setDiscountPurposeCode(com.trc.ccopromo.models.Constants.PROMO_DISCOUNT_CODE);
-                salesItem.setMarkChanged(true);
-                salesItem.setItemDiscountChanged(true);
-                salesItem.setDiscountManuallyChanged(true);
-                salesItem.setDiscountable(false);
-                // var amount=refSalesItem.getGrossAmount();
-                // SetUnitAmount(amount,salesItem);
-                salesItem.setUnitNetAmount(unitNewAmount);
-                salesItem.setUnitNetAmountOrigin(unitNewAmount);
-                salesItem.setUnitGrossAmount(unitGrossAmount);
-                salesItem.setUnitGrossAmountOrigin(unitGrossAmount);
-
-
-                salesItem.setGrossAmount(grossAmount);
-                salesItem.setNetAmount(newAmount);
-                salesItem.setDiscountAmountFromReceipt(BigDecimal.ZERO);
-                SetLineDiscount(salesItem,BigDecimal.ZERO);
-                salesItem.setUnitPriceChanged(true);
-                salesItem.setGrossAmount(BigDecimal.valueOf(10));
-            });
-            var originalAdjustItem=getAdjustmentItem(sourcereceipt);
-            if(originalAdjustItem!=null)
-            {
-                SalesItemEntity adjustmentItem=com.sap.scco.ap.pos.dao.EntityFactory.INSTANCE.createSpecialSalesItemEntity("Promo Adjustment", BigDecimal.valueOf(10), 
-                getFirstNonAdjustItem(sourcereceipt).getTaxRateTypeCode(), null);
-                SetUnitAmount(originalAdjustItem.getGrossAmount().negate(), adjustmentItem);
-                adjustmentItem.setUnitPriceChanged(true);
-                adjustmentItem.setId(com.trc.ccopromo.models.Constants.PROMO_ADJUSTMENT);
-                adjustmentItem.setQuantity(BigDecimal.ONE);
-                targetReceipt.addSalesItem(adjustmentItem);
-                // calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);
-                // UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, targetReceipt);
-
-            }
-
-            
-        }
-
-    }
+    
     void postReceipt(ReceiptEntity receipt) 
     {
         PostTransactionRequest requestObj=new PostTransactionRequest();

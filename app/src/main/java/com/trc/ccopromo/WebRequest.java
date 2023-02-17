@@ -38,58 +38,7 @@ public class WebRequest {
         _config = config;
     }
 
-    // ArrayList<Object> refPromos=null
-    // public PromoResponse Request(ReceiptEntity receipt,ArrayList<Integer> refPromos) throws IOException, InterruptedException {
-    //     PromoRequest request = new PromoRequest();
-    //     request.setItems(new ArrayList<PromoRequestItem>(
-    //             receipt.getSalesItems().stream().filter(a -> !a.getStatus().equals("3") &&  a.getMaterial() != null).map(item -> {
-    //                 var itm = new PromoRequestItem();
-    //                 itm.setItemCode(item.getId());
-    //                 itm.setQty(item.getQuantity().intValue());
-    //                 itm.setPrice(item.getUnitGrossAmount().doubleValue());
-    //                 itm.setGroup(item.getMaterial().getArticleGroup().getId());
-    //                 return itm;
-    //             }).collect(Collectors.toList())));
-    //     request.setTransactionNumber(receipt.getId());
-    //     request.setRefPromos(refPromos);
-
-    //     // var ss=JSONObject.fromObject(request).toString();
-    //     logger.info("-------------- REQUEST BEGIN-----------");
-    //     logger.info(JSONObject.fromObject(request).toString());
-    //     logger.info("-------------- REQUEST END-----------");
-
-    //     var builder=HttpRequest.newBuilder()
-    //     .header("Content-Type", "application/json")
-    //     .POST(HttpRequest.BodyPublishers.ofString(JSONObject.fromObject(request).toString()))
-    //     .uri(URI.create(_config.getBaseUrl()+"/api/Promo/Calculate"))
-    //     .setHeader("User-Agent", "Promotions engine plugin");
-
-    //     if(_config.getSecure())
-    //         builder=builder.header("Authorization","Bearer ".concat(_config.getAPIKey()));
-
-        
-
-    //     HttpRequest httpRequest = builder.build();
-    //     // HttpRequest.newBuilder()
-    //     //         .header("Content-Type", "application/json")
-    //     //         .POST(HttpRequest.BodyPublishers.ofString(JSONObject.fromObject(request).toString()))
-    //     //         .uri(URI.create(_config.getBaseUrl()))
-    //     //         .setHeader("User-Agent", "Promotions engine plugin")
-    //     //         //.header("Authorization","Bearer ".concat(_config.getAPIKey()))
-    //     //         .build();
-
-    //     HttpResponse<String> response = null;
-    //     response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-    //     ObjectMapper m = new ObjectMapper();
-    //     PromoResponse resp = m.readValue(response.body(), PromoResponse.class);
-        
-
-    //     logger.info("-------------- RESPONCE BEGIN-----------");
-    //     logger.info(response.body());
-    //     logger.info("-------------- RESPONCE END-----------");
-
-    //     return resp;
-    // }
+    
     public String Post(String url,Object data) throws IOException, InterruptedException 
     {
         String rslt=null;
