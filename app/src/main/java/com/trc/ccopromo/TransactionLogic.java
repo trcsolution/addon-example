@@ -397,10 +397,10 @@ public class TransactionLogic {
                 ,a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID)
             ),Collectors.toList()));
         var request = new WebRequest(_addon.getPluginConfig());
-        String json;
+        
         try {
             //save transaction online
-            json = request.Post("/api/Promo/Save", requestObj);
+            String json = request.Post("/api/Promo/Save", requestObj);
             //save promos into transaction
             var mapper = new ObjectMapper();
             var promos=mapper.readValue("{\"p\":"+json+"}", com.trc.ccopromo.models.storedpromo.StoredPromos.class);

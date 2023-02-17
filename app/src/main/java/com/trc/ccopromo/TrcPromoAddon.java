@@ -169,6 +169,7 @@ public class TrcPromoAddon extends BasePlugin {
                 {
                     logger.info("---------------- Calculation -------------------");
                     TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+                    transactionLogic.CalculatePromotios(receipt);
                     // ReceiptHelper.markSalesItemsAsChanged(receipt);
                 } else if(args.length == 4 && !ReceiptEntity.Status.NEW.equals(receipt.getStatus())){
                     logger.info("This is not a new receipt, not calculating discounts");
