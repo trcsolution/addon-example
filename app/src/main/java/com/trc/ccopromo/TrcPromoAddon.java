@@ -32,6 +32,9 @@ import com.sap.scco.ap.pos.exception.RequestProcessingException;
 import com.sap.scco.ap.pos.entity.MaterialEntity;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
 import com.sap.scco.ap.pos.entity.SalesItemEntity;
+import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
+import com.sap.scco.ap.pos.entity.coupon.DiscountElementEntity;
+
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -47,6 +50,7 @@ import net.sf.json.JSONObject;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -94,7 +98,7 @@ public class TrcPromoAddon extends BasePlugin {
     // private PriceDiscountManager priceDiscountManager;
     // private MaterialPosService materialPosService;
     // private PosService posService;
-    // private ReceiptPosService receiptPosService;
+    private ReceiptPosService receiptPosService;
     private ReceiptManager receiptManager;
     // private SalesItemManager salesItemManager;
     private CalculationPosService calculationPosService;
@@ -122,7 +126,7 @@ public class TrcPromoAddon extends BasePlugin {
         currentlyCalculating.set(false);
         this.dbSession = CDBSessionFactory.instance.createSession();
         this.receiptManager = new ReceiptManager(dbSession);
-        // this.receiptPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(ReceiptPosService.class, dbSession);
+        this.receiptPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(ReceiptPosService.class, dbSession);
         this.calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,dbSession);
         // this.salesItemPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(SalesItemPosService.class,dbSession);
         super.startup();
@@ -161,25 +165,78 @@ public class TrcPromoAddon extends BasePlugin {
         currentlyCalculating.set(false);
     }
 
+    // @PluginAt(pluginClass = CalculationPosService.class, method = "calculate", where = PluginAt.POSITION.AFTER)
+    // public void afterCalculation(Object proxy, Object[] args, Object caller,Object obj1) throws InconsistentReceiptStateException {
+    //     try {
+    //         if(args.length==3)
+    //             if(BaseEntity.EntityActions.CREATE==args[1] || BaseEntity.EntityActions.UPDATE==args[1])
+    //         {
+    //         // if(LockCalculation()) 
+    //         {
+
+    //             ReceiptEntity receipt = (ReceiptEntity) args[0];
+    //             if(receipt.getStatus()!="6")
+    //             {
+
+    //                 // var discountAmount=BigDecimal.valueOf(5);
+    //                 // var salesItem=receipt.getSalesItems().get(0);
+
+    //                 // var elements=salesItem.getDiscountElements();
+    //                 // DiscountElementEntity discount=new DiscountElementEntity();
+    //                 // discount.setDiscountAmount(discountAmount);
+    //                 // discount.setManually(true);
+    //                 // receipt.addDiscountElement(discount);
+    //                 // var amount=salesItem.getDiscountAmount();
+    //                 // var elements=salesItem.getDiscountElements();
+    //                 // var disccode=salesItem.getDiscountPurposeCode();
+    //                 // logger.info(disccode);
+    
+    //                 // BigDecimal currentDIscount=BigDecimal.valueOf(3);
+    //                 // if(elements.size()>0)
+    //                 // currentDIscount=currentDIscount.add(elements.get(0).getDiscountAmount());
+    
+    //                 TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+    //                 transactionLogic.CalculatePromotios(receipt);
+    //                 // transactionLogic.SetLineDiscount(salesItem, currentDIscount);
+    
+    
+    //                 // receipt.getDiscountElements().add(disc);
+    //                 // calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
+    //                 // UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, receipt);
+    //             }
+                
+    //             // unlockCalculation();
+    //         }
+    //     }
+           
+    //     } catch (Exception e) {
+    //         // unlockCalculation();
+    //         logger.error("ERROR CALCULATING", e);
+    //         // currentlyCalculating.set(false);
+    //     }
+    // }
     @PluginAt(pluginClass = CalculationPosService.class, method = "calculate", where = PluginAt.POSITION.BEFORE)
     public void applyPromotions(Object proxy, Object[] args, StackTraceElement caller) throws InconsistentReceiptStateException {
         try {
-            
-            if(LockCalculation()) {
-                ReceiptEntity receipt = (ReceiptEntity) args[0];
+            ReceiptEntity receipt = (ReceiptEntity) args[0];
+            // logger.info("22222222222222222");
+            if (args.length == 4 && ReceiptEntity.Status.NEW.equals(receipt.getStatus()) && receipt.getPaymentItems().isEmpty()) 
+            {
+            if(LockCalculation()) 
+            {
                 if (args.length == 4 && ReceiptEntity.Status.NEW.equals(receipt.getStatus()) && receipt.getPaymentItems().isEmpty()) 
                 {
                     logger.info("---------------- Calculation -------------------");
                     TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-                    transactionLogic.CalculatePromotios(receipt);
                     // ReceiptHelper.markSalesItemsAsChanged(receipt);
                 } else if(args.length == 4 && !ReceiptEntity.Status.NEW.equals(receipt.getStatus())){
                     logger.info("This is not a new receipt, not calculating discounts");
                 }
                 unlockCalculation();
             } else {
-                // logger.info("Calculation run missed");
+                logger.info("Calculation run missed");
             }
+        }
         } catch (Exception e) {
             unlockCalculation();
             logger.error("ERROR CALCULATING", e);

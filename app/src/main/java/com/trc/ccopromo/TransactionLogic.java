@@ -289,6 +289,12 @@ public class TransactionLogic {
     {
         receipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3")).forEach(salesItem->
                 {
+                    // if(salesItem.getDiscountElements()==null
+                    //     || salesItem.getDiscountElements()!=null && 
+                    //     salesItem.getDiscountElements().size()==0)
+                    // if(salesItem.getDiscountElements().size()>0)
+                    //     if(salesItem.getDiscountElements().get(0).getDiscountAmount().compareTo(BigDecimal.ZERO)>0)
+                    //      return;
                     SetLineDiscount(salesItem,BigDecimal.ZERO);
                     // salesItem.setUnitPriceChanged(true);
                 });
@@ -314,6 +320,7 @@ public class TransactionLogic {
     }
     public  void ApplyPromoDiscountsToTransaction(PromoResponse promoResp,ReceiptEntity receipt)
     {
+        
         calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
         var promoDiscounts=promoResp.itemDiscounts.stream().collect(Collectors.groupingBy(a->a.promoId,Collectors.summingDouble(a->a.discount)));
         promoDiscounts.keySet().forEach(a->
@@ -325,7 +332,15 @@ public class TransactionLogic {
     public void CalculatePromotios(final ReceiptEntity receipt) throws IOException, InterruptedException {
         try {
             ResetSalesItems(receipt);
-            var promos = RequestPromo(receipt,null);
+            PromoResponse promos = null;
+            try
+            {
+             promos = RequestPromo(receipt,null);
+            }
+            catch(Exception e)
+            {
+                e.printStackTrace();
+            }
             if(promos!=null)
                 if(promos.itemDiscounts!=null)
                     if(!promos.itemDiscounts.isEmpty())
@@ -400,6 +415,11 @@ public class TransactionLogic {
     
     public void SetLineDiscount(SalesItemEntity salesItem,BigDecimal discount){
     // Optional<ItemDiscount> promoitem) {
+
+        var elements=salesItem.getDiscountElements();
+        if(!elements.isEmpty())
+            discount=discount.add(elements.get(0).getDiscountAmount());
+
         salesItem.setPercentageDiscount(false);
         salesItem.setDiscountAmount(discount);
         salesItem.setDiscountPurposeCode(com.trc.ccopromo.models.Constants.PROMO_DISCOUNT_CODE);
