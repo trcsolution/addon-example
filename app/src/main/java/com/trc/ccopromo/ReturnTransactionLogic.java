@@ -110,38 +110,27 @@ public class ReturnTransactionLogic {
     {
         ReceiptEntity targetReceipt = returnReciept.getIndividualItemsReceipt();
         ReceiptEntity sourceReceipt = returnReciept.getSourceReceipt();
-        ReceiptEntity actualOriginalReceipt = transactionlogic.LoadReceipt(returnReciept.getSourceReceipt().getId());
+        ReceiptEntity actualOriginalReceipt1 = transactionlogic.LoadReceipt(returnReciept.getSourceReceipt().getId());
 
         
-        var promotions=getPromotionsFromAdditionalItms(actualOriginalReceipt);
+        var promotions=getPromotionsFromAdditionalItms(actualOriginalReceipt1);
         var reminingDescounts=getTransactionDiscounts(sourceReceipt,promotions);
         var promoDiscount=Double.parseDouble(reminingDescounts.discount);
 
-        // var discountSource=sourceReceipt.getDiscountAmount();
-        // var discountOriginal=actualOriginalReceipt.getDiscountAmount();
-        // sourceReceipt.setDiscountAmount(discountOriginal);
-        // var s1=String.valueOf(discountSource);
-        // var s2=String.valueOf(discountOriginal);
-        // logger.info(s1);
-        // logger.info(s2);
-
-        
-        // reminingDescounts.itemDiscounts.
-        
-        
 
         if(targetReceipt.getSalesItems().size()>0)
         {
+
+            // double actualGrossTotalAmount=sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum()
+            //         +targetReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum();
+                    
+            double spentAmount=sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().subtract(a.getDiscountAmount()).doubleValue()).sum()
+                    +targetReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().subtract(a.getDiscountAmount()).doubleValue()).sum()
+                    -actualOriginalReceipt1.getDiscountAmount().doubleValue();
         
-                double spentAmount=actualOriginalReceipt.getPaymentGrossAmount().doubleValue();
-                double actualGrossTotalAmount=actualOriginalReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum();
-                double headerLevelDiscount=actualGrossTotalAmount-spentAmount;
-
                 double reminingAmount=sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum()
-                    // -headerLevelDiscount
-                    ;
+                    -promoDiscount;
 
-                reminingAmount=reminingAmount-promoDiscount;
                 BigDecimal refundingAmount=BigDecimal.valueOf(spentAmount-reminingAmount);
                 if(refundingAmount.compareTo(BigDecimal.ZERO)<0)
                     refundingAmount=BigDecimal.ZERO;
@@ -170,7 +159,7 @@ public class ReturnTransactionLogic {
                             var linediscount=entry.getGrossAmount().subtract(linerefundamount);
 
                             TransactionLogic.setAdditionalField(entry, "TRC_Discount",linediscount.toString());
-                            if(linediscount.compareTo(BigDecimal.ZERO)>0)
+                            // if(linediscount.compareTo(BigDecimal.ZERO)>0)
                             {
                                 this.transactionlogic.SetLineDiscount(entry,linediscount);
 
@@ -198,7 +187,7 @@ public class ReturnTransactionLogic {
             return a.getGrossAmount().subtract(a.getDiscountAmount()).doubleValue();
         }).sum());
         
-        var discountOriginal=actualOriginalReceipt.getDiscountAmount();
+        var discountOriginal=actualOriginalReceipt1.getDiscountAmount();
 
         // sourceReceipt.setDiscountAmount(discountOriginal);
         sourceReceipt.setPercentageDiscount(false);
