@@ -109,7 +109,7 @@ public class TrcPromoAddon extends BasePlugin {
 
     @Override
     public String getVersion() {
-        return "2.0.11";
+        return "2.0.12";
     }
 
     @Override
