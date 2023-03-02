@@ -2,6 +2,7 @@ package com.trc.ccopromo;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -20,6 +21,7 @@ import com.trc.ccopromo.models.transaction.post.Data;
 import com.trc.ccopromo.models.transaction.post.Item;
 import com.trc.ccopromo.models.transaction.post.PostTransactionRequest;
 
+import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import net.sf.json.JSONObject;
 import org.slf4j.LoggerFactory;
@@ -39,31 +41,26 @@ public class WebRequest {
     }
 
     
-    public String Post(String url,Object data) throws IOException, InterruptedException 
+    public String Post(String url,Object data) throws IOException, InterruptedException,URISyntaxException 
     {
-        String rslt=null;
-        try {
+            String sUrl=_config.getBaseUrl().endsWith("/")?_config.getBaseUrl().substring(0,_config.getBaseUrl().length()-1):_config.getBaseUrl();
+            sUrl+=url;
+            URI _uri=URI.create(sUrl);
             var mapper = new ObjectMapper();
             String json=mapper.writeValueAsString(data);
             var builder=HttpRequest.newBuilder()
              .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(json))
-            .uri(URI.create(_config.getBaseUrl()+url))
+            .uri(_uri)//URI.create(_config.getBaseUrl()+url)
             .setHeader("User-Agent", "Promotions engine plugin");
             if(_config.getSecure())
                 builder=builder.header("Authorization","Bearer ".concat(_config.getAPIKey()));
             HttpRequest httpRequest = builder.build();
             HttpResponse<String> response= httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-            rslt=response.body();
+            String rslt=response.body();
             logger.info(response.body());
             logger.info(json);
             return rslt;
-        } catch (JsonProcessingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return rslt;
-        
     }
     
 

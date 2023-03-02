@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -93,7 +94,7 @@ public class ReturnTransactionLogic {
                 collect(Collectors.toList()).stream().filter(a->a!=null).collect(Collectors.toList());
     }
 
-    com.trc.ccopromo.models.PromoResponse getTransactionDiscounts(ReceiptEntity receipt,List<com.trc.ccopromo.models.storedpromo.StoredPromo> usedpromos) throws IOException, InterruptedException
+    com.trc.ccopromo.models.PromoResponse getTransactionDiscounts(ReceiptEntity receipt,List<com.trc.ccopromo.models.storedpromo.StoredPromo> usedpromos) throws IOException, InterruptedException, URISyntaxException
     {
         var request=transactionlogic.MakePromoRequest(receipt, null);
         request.promotions=usedpromos;
@@ -106,7 +107,7 @@ public class ReturnTransactionLogic {
     {
         return receipt.getSalesItems().stream().filter(b->itemCode.equalsIgnoreCase(b.getId()) && !b.getStatus().equalsIgnoreCase("3") );
     }
-    public void ItemForReturn(ReturnReceiptObject returnReciept) throws IOException, InterruptedException
+    public void ItemForReturn(ReturnReceiptObject returnReciept) throws IOException, InterruptedException, URISyntaxException
     {
         ReceiptEntity targetReceipt = returnReciept.getIndividualItemsReceipt();
         ReceiptEntity sourceReceipt = returnReciept.getSourceReceipt();
@@ -172,51 +173,28 @@ public class ReturnTransactionLogic {
                 calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);
                 UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, targetReceipt);
         }
-
         transactionlogic.ResetSalesItems(sourceReceipt);
         transactionlogic.ApplyPromoDiscountsToTransaction(reminingDescounts, sourceReceipt);
-        
-        
-        
-
-
         calculationPosService.calculate(sourceReceipt, EntityActions.CHECK_CONS);
-
-
         var totalrows=BigDecimal.valueOf(sourceReceipt.getSalesItems().stream().filter(a->a.getStatus().compareTo("3")!=0).mapToDouble(a->{
             return a.getGrossAmount().subtract(a.getDiscountAmount()).doubleValue();
         }).sum());
-        
         var discountOriginal=actualOriginalReceipt1.getDiscountAmount();
-
         // sourceReceipt.setDiscountAmount(discountOriginal);
         sourceReceipt.setPercentageDiscount(false);
-
         if(totalrows.compareTo(BigDecimal.ZERO)==0)
             discountOriginal=BigDecimal.ZERO;
-
         // sourceReceipt.setDiscountPurposeCode("1000");
         sourceReceipt.setDiscountAmount(discountOriginal);
-
-
-
-
-
         sourceReceipt.setPaymentGrossAmountWithoutReceiptDiscount(totalrows);
         sourceReceipt.setPaymentGrossAmount(totalrows.subtract(discountOriginal));
         // sourceReceipt.setPaymentGrossAmountWithoutReceiptDiscount(BigDecimal.valueOf(16));
         // sourceReceipt.setPaymentGrossAmount(BigDecimal.valueOf(19));
-
-
         // var newgrossAmount=sourceReceipt.getTotalGrossAmount().subtract(actualOriginalReceipt.getDiscountAmount());
-        
         //  sourceReceipt.setTotalGrossAmount(BigDecimal.valueOf(15));
         // setTotalGrossAmount(BigDecimal.valueOf(15));
         // sourceReceipt.prin
-// 
         // calculationPosService.calculate(sourceReceipt, EntityActions.CHECK_CONS);
-
-
         UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, sourceReceipt);
     }
 

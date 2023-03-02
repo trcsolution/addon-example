@@ -11,6 +11,7 @@ import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Optional;
 import com.sap.scco.ap.pos.service.CalculationPosService;
@@ -158,7 +159,7 @@ public class TransactionLogic {
         return rslt;
 
     }
-    public void PickUpPromoLine(ReturnReceiptObject returnReciept) throws IOException, InterruptedException
+    public void PickUpPromoLine(ReturnReceiptObject returnReciept) throws IOException, InterruptedException, URISyntaxException
     {
         ReceiptEntity targetReceipt = returnReciept.getIndividualItemsReceipt();
         ReceiptEntity sourceReceipt = returnReciept.getSourceReceipt();
@@ -261,18 +262,11 @@ public class TransactionLogic {
                     ApplyPromoDiscount(receipt,items,a,promoDiscounts.get(a));
                 });
     }
-    public void CalculatePromotios(final ReceiptEntity receipt) throws IOException, InterruptedException {
-        try {
+    public void CalculatePromotios(final ReceiptEntity receipt) throws IOException, InterruptedException, URISyntaxException {
+        
             ResetSalesItems(receipt);
-            PromoResponse promos = null;
-            try
-            {
-             promos = RequestPromo(receipt,null);
-            }
-            catch(Exception e)
-            {
-                e.printStackTrace();
-            }
+            PromoResponse promos = RequestPromo(receipt,null);
+            
             if(promos!=null)
                 if(promos.itemDiscounts!=null)
                     if(!promos.itemDiscounts.isEmpty())
@@ -281,10 +275,7 @@ public class TransactionLogic {
             }
            
 
-        } catch (Exception e) {
-        // TODO Auto-generated catch block
-         e.printStackTrace();
-         }
+        
     }
     private void UpdateLines(ReceiptEntity receipt, ItemDiscount discount
     //BigDecimal discount
@@ -361,13 +352,13 @@ public class TransactionLogic {
         promorequest.refPromos=refPromos;
         return promorequest;
     }
-    public String PostCalculationRequest(com.trc.ccopromo.models.PromoRequest promorequest) throws IOException, InterruptedException
+    public String PostCalculationRequest(com.trc.ccopromo.models.PromoRequest promorequest) throws IOException, InterruptedException, URISyntaxException
     {
         var request = new WebRequest(_addon.getPluginConfig());
         var response=request.Post("/api/Promo/Calculate", promorequest);
         return response;
     }
-    public PromoResponse RequestPromo(ReceiptEntity _transaction,ArrayList<Integer> refPromos) throws IOException, InterruptedException {
+    public PromoResponse RequestPromo(ReceiptEntity _transaction,ArrayList<Integer> refPromos) throws IOException, InterruptedException, URISyntaxException {
 
         ReceiptEntity receipt = _transaction;
         logger.info("------RequestPromo------");
@@ -381,6 +372,7 @@ public class TransactionLogic {
     }
     
     void postReceipt(ReceiptEntity receipt) 
+        throws IOException, InterruptedException, URISyntaxException 
     {
         PostTransactionRequest requestObj=new PostTransactionRequest();
         requestObj.data=new com.trc.ccopromo.models.transaction.post.Data();
@@ -398,7 +390,7 @@ public class TransactionLogic {
             ),Collectors.toList()));
         var request = new WebRequest(_addon.getPluginConfig());
         
-        try {
+        // try {
             //save transaction online
             String json = request.Post("/api/Promo/Save", requestObj);
             //save promos into transaction
@@ -408,10 +400,10 @@ public class TransactionLogic {
                 var s1=mapper.writeValueAsString(promos.storedPromos.get(i));
                 setTransactionAdditionalField(receipt,"Promo:"+String.valueOf(i) ,s1);
             }
-        } catch (IOException | InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        // } catch (IOException | InterruptedException e) {
+        //     // TODO Auto-generated catch block
+        //     e.printStackTrace();
+        // }
         // request.PostTransaction(receipt);
     }
 }

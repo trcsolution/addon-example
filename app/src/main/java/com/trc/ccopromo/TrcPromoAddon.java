@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -114,12 +115,15 @@ public class TrcPromoAddon extends BasePlugin {
 
     @Override
     public void startup() {
-        currentlyCalculating.set(false);
+        // currentlyCalculating.set(false);
+        
         this.dbSession = CDBSessionFactory.instance.createSession();
         this.receiptManager = new ReceiptManager(dbSession);
         // this.receiptPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(ReceiptPosService.class, dbSession);
         this.calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,dbSession);
         // this.salesItemPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(SalesItemPosService.class,dbSession);
+
+        currentlyCalculating.set(false);
         super.startup();
     }
     
@@ -179,17 +183,22 @@ public class TrcPromoAddon extends BasePlugin {
                 logger.info("Calculation run missed");
             }
         }
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
             unlockCalculation();
-            logger.error("ERROR CALCULATING", e);
-            // currentlyCalculating.set(false);
-        }
+            e.printStackTrace();
+        } catch (IOException e) {
+            unlockCalculation();
+            e.printStackTrace();
+        } catch (URISyntaxException e) {
+            unlockCalculation();
+            e.printStackTrace();
+        } 
     }
-
-    @PluginAt(pluginClass = ReceiptPosService.class, method = "postReceipt", where = PluginAt.POSITION.BEFORE)
-    public Object postReceipt(Object proxy, Object[] args, Object ret)
     // @PluginAt(pluginClass = ReceiptPosService.class, method = "postReceipt", where = PluginAt.POSITION.AFTER)
     // public Object postReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller)
+
+    @PluginAt(pluginClass = ReceiptPosService.class, method = "postReceipt", where = PluginAt.POSITION.BEFORE)
+    public Object postReceipt(Object proxy, Object[] args, Object ret) throws IOException, InterruptedException, URISyntaxException
     {
         ReceiptEntity transaction = (ReceiptEntity)args[0];
         if(transaction.getSalesItems().stream().anyMatch(a->
@@ -214,7 +223,9 @@ public class TrcPromoAddon extends BasePlugin {
 
     @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "startReturn", where = PluginAt.POSITION.AFTER)
     public Object startReturn(Object proxy, Object[] args, Object ret, StackTraceElement caller)
-    throws BreakExecutionException, IOException, InterruptedException {
+    throws BreakExecutionException, IOException, InterruptedException, URISyntaxException
+    
+     {
         ReturnReceiptObject result = (ReturnReceiptObject) ret;
         if(this.getPluginConfig().getAdvreturn())
         {
@@ -231,7 +242,8 @@ public class TrcPromoAddon extends BasePlugin {
     }
     @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveSalesItemByQuantity", where = PluginAt.POSITION.AFTER)
     public Object moveSalesItemByQuantity(Object proxy, Object[] args, Object ret, StackTraceElement caller)
-            throws BreakExecutionException, IOException, InterruptedException {
+            throws BreakExecutionException, IOException, InterruptedException ,URISyntaxException
+            {
         ReturnReceiptObject result = (ReturnReceiptObject) ret;
         if(this.getPluginConfig().getAdvreturn())
         {
