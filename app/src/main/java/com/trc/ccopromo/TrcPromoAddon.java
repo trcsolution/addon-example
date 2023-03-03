@@ -110,7 +110,7 @@ public class TrcPromoAddon extends BasePlugin {
 
     @Override
     public String getVersion() {
-        return "2.0.12";
+        return "2.1.0";
     }
 
     @Override
@@ -235,7 +235,7 @@ public class TrcPromoAddon extends BasePlugin {
             if (targetReceipt != null) {
                 TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
                 ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
-                logic.ItemForReturn(result);
+                logic.ItemForReturn(result,true);
             }
         }
         return result;
@@ -253,7 +253,7 @@ public class TrcPromoAddon extends BasePlugin {
             if (targetReceipt != null) {
                 TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
                 ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
-                logic.ItemForReturn(result);
+                logic.ItemForReturn(result,false);
             }
         }
         return result;

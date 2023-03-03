@@ -107,32 +107,37 @@ public class ReturnTransactionLogic {
     {
         return receipt.getSalesItems().stream().filter(b->itemCode.equalsIgnoreCase(b.getId()) && !b.getStatus().equalsIgnoreCase("3") );
     }
-    public void ItemForReturn(ReturnReceiptObject returnReciept) throws IOException, InterruptedException, URISyntaxException
+    static double OriginaSpentAmount=0;
+    public void ItemForReturn(ReturnReceiptObject returnReciept,boolean isStartReturn) throws IOException, InterruptedException, URISyntaxException
     {
         ReceiptEntity targetReceipt = returnReciept.getIndividualItemsReceipt();
         ReceiptEntity sourceReceipt = returnReciept.getSourceReceipt();
         ReceiptEntity actualOriginalReceipt1 = transactionlogic.LoadReceipt(returnReciept.getSourceReceipt().getId());
 
         
+
+        
         var promotions=getPromotionsFromAdditionalItms(actualOriginalReceipt1);
         var reminingDescounts=getTransactionDiscounts(sourceReceipt,promotions);
         var promoDiscount=Double.parseDouble(reminingDescounts.discount);
+        
+        if(isStartReturn)
+        {
+            OriginaSpentAmount=sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum();
+            OriginaSpentAmount-=promoDiscount;
+            OriginaSpentAmount-=actualOriginalReceipt1.getDiscountAmount().doubleValue();
+        }
+
 
 
         if(targetReceipt.getSalesItems().size()>0)
         {
-
-            // double actualGrossTotalAmount=sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum()
-            //         +targetReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum();
-                    
-            double spentAmount=sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().subtract(a.getDiscountAmount()).doubleValue()).sum()
-                    +targetReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().subtract(a.getDiscountAmount()).doubleValue()).sum()
-                    -actualOriginalReceipt1.getDiscountAmount().doubleValue();
-        
+            
+                double spentAmount=OriginaSpentAmount;
                 double reminingAmount=sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum()
                     -promoDiscount;
 
-                BigDecimal refundingAmount=BigDecimal.valueOf(spentAmount-reminingAmount);
+                BigDecimal refundingAmount=BigDecimal.valueOf(spentAmount-reminingAmount).setScale(2,RoundingMode.HALF_UP);
                 if(refundingAmount.compareTo(BigDecimal.ZERO)<0)
                     refundingAmount=BigDecimal.ZERO;
                 BigDecimal planingRefundingAmount=BigDecimal.valueOf(targetReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3")).mapToDouble(a->a.getGrossAmount().doubleValue()).sum());
@@ -157,6 +162,20 @@ public class ReturnTransactionLogic {
                                 refAmount=BigDecimal.ZERO;
                             }
                             refAmount=refAmount.subtract(linerefundamount);
+
+                            //rounding
+                            if(refAmount.equals(BigDecimal.valueOf(0.01)))
+                             {
+                                linerefundamount=linerefundamount.add(refAmount);
+                                refAmount=BigDecimal.ZERO;
+                             }
+                             else
+                             if(refAmount.equals(BigDecimal.valueOf(-0.01)))
+                             {
+                                linerefundamount=linerefundamount.subtract(refAmount);
+                                refAmount=BigDecimal.ZERO;
+                             }
+
                             var linediscount=entry.getGrossAmount().subtract(linerefundamount);
 
                             TransactionLogic.setAdditionalField(entry, "TRC_Discount",linediscount.toString());
