@@ -33,8 +33,8 @@ buildNumber.properties
 ##############################
 ## Gradle
 ##############################
-bin/
-build/
+app/bin/
+app/build/
 .gradle
 .gradletasknamecache
 gradle-app.setting
