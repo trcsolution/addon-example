@@ -7,23 +7,23 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.stream.Collectors;
+// import java.util.ArrayList;
+// import java.util.stream.Collectors;
 
-import com.beust.jcommander.JCommander.Builder;
-import com.fasterxml.jackson.core.JsonProcessingException;
+// import com.beust.jcommander.JCommander.Builder;
+// import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sap.scco.ap.pos.entity.ReceiptEntity;
-import com.trc.ccopromo.models.PromoRequest;
-import com.trc.ccopromo.models.PromoRequestItem;
-import com.trc.ccopromo.models.PromoResponse;
-import com.trc.ccopromo.models.transaction.post.Data;
-import com.trc.ccopromo.models.transaction.post.Item;
-import com.trc.ccopromo.models.transaction.post.PostTransactionRequest;
+// import com.sap.scco.ap.pos.entity.ReceiptEntity;
+// import com.trc.ccopromo.models.PromoRequest;
+// import com.trc.ccopromo.models.PromoRequestItem;
+// import com.trc.ccopromo.models.PromoResponse;
+// import com.trc.ccopromo.models.transaction.post.Data;
+// import com.trc.ccopromo.models.transaction.post.Item;
+// import com.trc.ccopromo.models.transaction.post.PostTransactionRequest;
 
-import org.apache.http.client.utils.URIBuilder;
+// import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
-import net.sf.json.JSONObject;
+// import net.sf.json.JSONObject;
 import org.slf4j.LoggerFactory;
 
 public class WebRequest {

@@ -2,61 +2,62 @@ package com.trc.ccopromo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sap.scco.ap.pos.dao.CDBSession;
 import com.sap.scco.ap.pos.dao.CDBSessionFactory;
-import com.sap.scco.ap.pos.dao.PersistenceManager;
-import com.sap.scco.ap.pos.dao.ReceiptManager;
+// import com.sap.scco.ap.pos.dao.PersistenceManager;
+// import com.sap.scco.ap.pos.dao.ReceiptManager;
 import com.sap.scco.ap.pos.entity.AdditionalFieldEntity;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
 import com.sap.scco.ap.pos.entity.SalesItemEntity;
 import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.MathContext;
+// import java.math.MathContext;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Optional;
+// import java.util.Optional;
 import com.sap.scco.ap.pos.service.CalculationPosService;
 import com.sap.scco.ap.pos.service.ReceiptPosService;
 import com.sap.scco.ap.pos.service.ServiceFactory;
 import com.sap.scco.ap.returnreceipt.ReturnReceiptObject;
-import com.sap.scco.cs.utilities.ReceiptHelper;
+// import com.sap.scco.cs.utilities.ReceiptHelper;
 import com.sap.scco.env.UIEventDispatcher;
 import com.sap.scco.util.CConst;
 import com.trc.ccopromo.models.PromoResponse;
 import com.trc.ccopromo.models.transaction.post.PostTransactionRequest;
 
 import org.slf4j.LoggerFactory;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collector;
+// import java.util.concurrent.Future;
+// import java.util.concurrent.TimeUnit;
+// import java.util.concurrent.TimeoutException;
+// import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import com.sap.scco.ap.pos.exception.InconsistentReceiptStateException;
-import com.sap.scco.util.security.InsufficientPermissionException;
-import com.trc.ccopromo.models.ItemDiscount;
-import org.apache.xpath.operations.Bool;
-import org.checkerframework.checker.units.qual.A;
-import org.slf4j.Logger;
+// import java.util.concurrent.CompletableFuture;
+// import java.util.concurrent.ExecutionException;
+// import com.sap.scco.ap.pos.exception.InconsistentReceiptStateException;
+// import com.sap.scco.util.security.InsufficientPermissionException;
+// import com.trc.ccopromo.models.ItemDiscount;
+// import org.apache.xpath.operations.Bool;
+// import org.checkerframework.checker.units.qual.A;
+// import org.slf4j.Logger;
 import java.util.List;
 
 public class TransactionLogic {
     private TrcPromoAddon _addon;
     // private ReceiptEntity transaction = null;
-    private ReceiptManager receiptManager;
+    // private ReceiptManager receiptManager;
     private CalculationPosService calculationPosService;
     // private CDBSession dbSession;
 
     private org.slf4j.Logger logger;
 
-    public TransactionLogic(TrcPromoAddon addon, ReceiptManager _receiptManager,
+    public TransactionLogic(TrcPromoAddon addon,
+    //  ReceiptManager _receiptManager,
             CalculationPosService _calculationPosService
             // , CDBSession _dbSession
             ) {
                 
         logger = LoggerFactory.getLogger(TrcPromoAddon.class);
-        receiptManager = _receiptManager;
+        // receiptManager = _receiptManager;
         _addon = addon;
         calculationPosService = _calculationPosService;
         // dbSession = _dbSession;
@@ -116,12 +117,12 @@ public class TransactionLogic {
     }
     
 
-    private void SetUnitAmount(BigDecimal amount, SalesItemEntity adjustmentItem) {
-        adjustmentItem.setUnitNetAmount(amount);
-        adjustmentItem.setUnitNetAmountOrigin(amount);
-        adjustmentItem.setUnitGrossAmount(amount);
-        adjustmentItem.setUnitGrossAmountOrigin(amount);
-    }
+    // private void SetUnitAmount(BigDecimal amount, SalesItemEntity adjustmentItem) {
+    //     adjustmentItem.setUnitNetAmount(amount);
+    //     adjustmentItem.setUnitNetAmountOrigin(amount);
+    //     adjustmentItem.setUnitGrossAmount(amount);
+    //     adjustmentItem.setUnitGrossAmountOrigin(amount);
+    // }
     
     
     Boolean CheckAdjustItemChanging(ReceiptEntity sourceReceipt,ReceiptEntity targetReceipt)
@@ -287,43 +288,43 @@ public class TransactionLogic {
 
         
     }
-    private void UpdateLines(ReceiptEntity receipt, ItemDiscount discount
-    //BigDecimal discount
-    , String[] lines) {
+    // private void UpdateLines(ReceiptEntity receipt, ItemDiscount discount
+    // //BigDecimal discount
+    // , String[] lines) {
         
-        var _discount=BigDecimal.valueOf(discount.discount);
-        for(String id : lines)
-        {
-            var salesItem=receipt.getSalesItems().stream().filter(a->a.getExternalId().equals(id)).findFirst().get();
-             _discount=_discount.add(_correctionAmount);
-             _correctionAmount=BigDecimal.ZERO;
+    //     var _discount=BigDecimal.valueOf(discount.discount);
+    //     for(String id : lines)
+    //     {
+    //         var salesItem=receipt.getSalesItems().stream().filter(a->a.getExternalId().equals(id)).findFirst().get();
+    //          _discount=_discount.add(_correctionAmount);
+    //          _correctionAmount=BigDecimal.ZERO;
 
-            if(_discount.compareTo(
-                salesItem.getGrossAmount()
-                //salesItem.getUnitGrossAmount().multiply(salesItem.getQuantity())
-                )<=0)
-            {
-                 var linediscount=_discount.setScale(2,java.math.RoundingMode.HALF_DOWN);
-                _correctionAmount=_discount.subtract(linediscount);
-                SetLineDiscount(salesItem,linediscount);
+    //         if(_discount.compareTo(
+    //             salesItem.getGrossAmount()
+    //             //salesItem.getUnitGrossAmount().multiply(salesItem.getQuantity())
+    //             )<=0)
+    //         {
+    //              var linediscount=_discount.setScale(2,java.math.RoundingMode.HALF_DOWN);
+    //             _correctionAmount=_discount.subtract(linediscount);
+    //             SetLineDiscount(salesItem,linediscount);
 
-                // com.trc.ccopromo.models.Constants.PROMO_ID
-                setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_ID,Integer.toString(discount.promoId));
-                setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_TYPE,Integer.toString(discount.promoType));
-                break;
-            }
-            else
-            {
-                _discount=_discount.subtract(salesItem.getGrossAmount());
-                SetLineDiscount(salesItem,salesItem.getGrossAmount());
+    //             // com.trc.ccopromo.models.Constants.PROMO_ID
+    //             setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_ID,Integer.toString(discount.promoId));
+    //             setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_TYPE,Integer.toString(discount.promoType));
+    //             break;
+    //         }
+    //         else
+    //         {
+    //             _discount=_discount.subtract(salesItem.getGrossAmount());
+    //             SetLineDiscount(salesItem,salesItem.getGrossAmount());
 
-                setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_ID,Integer.toString(discount.promoId));
-                setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_TYPE,Integer.toString(discount.promoType));
-                // salesItem.setUnitPriceChanged(true);
-            }
-        }
-       //return discount;
-    }
+    //             setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_ID,Integer.toString(discount.promoId));
+    //             setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_TYPE,Integer.toString(discount.promoType));
+    //             // salesItem.setUnitPriceChanged(true);
+    //         }
+    //     }
+    //    //return discount;
+    // }
 
     
     
@@ -411,7 +412,7 @@ public class TransactionLogic {
                 setTransactionAdditionalField(receipt,"Promo:"+String.valueOf(i) ,s1);
             }
         // } catch (IOException | InterruptedException e) {
-        //     // TODO Auto-generated catch block
+        //     
         //     e.printStackTrace();
         // }
         // request.PostTransaction(receipt);

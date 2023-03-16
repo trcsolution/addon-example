@@ -1,30 +1,30 @@
 package com.trc.ccopromo;
 
-import org.apache.poi.hpsf.Decimal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+// import org.apache.poi.hpsf.Decimal;
+// import org.slf4j.Logger;
+// import org.slf4j.LoggerFactory;
+// 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+// import java.util.ArrayList;
+// import java.util.Collections;
+// import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collector;
+// import java.util.Map;
+// import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Function;
-import com.sap.scco.ap.pos.dao.ReceiptManager;
-import com.sap.scco.ap.pos.entity.AdditionalFieldEntity;
-import com.sap.scco.ap.pos.entity.BaseWithAdditionalFieldsEntity;
-import com.sap.scco.ap.pos.entity.ReceiptCalculationMetaData;
+// import com.google.common.base.Function;
+// import com.sap.scco.ap.pos.dao.ReceiptManager;
+// import com.sap.scco.ap.pos.entity.AdditionalFieldEntity;
+// import com.sap.scco.ap.pos.entity.BaseWithAdditionalFieldsEntity;
+// import com.sap.scco.ap.pos.entity.ReceiptCalculationMetaData;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
 import com.sap.scco.ap.pos.entity.SalesItemEntity;
 import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
@@ -32,22 +32,24 @@ import com.sap.scco.ap.pos.service.CalculationPosService;
 import com.sap.scco.ap.returnreceipt.ReturnReceiptObject;
 import com.sap.scco.env.UIEventDispatcher;
 import com.sap.scco.util.CConst;
-import com.trc.ccopromo.models.ItemDiscount;
-import com.trc.ccopromo.models.ReturnItemDiscount;
+// import com.trc.ccopromo.models.ItemDiscount;
+// import com.trc.ccopromo.models.ReturnItemDiscount;
 
 
 
 public class ReturnTransactionLogic {
-    private TrcPromoAddon _addon;
-    private ReceiptManager receiptManager;
+    // private TrcPromoAddon _addon;
+    // private ReceiptManager receiptManager;
     private CalculationPosService calculationPosService;
-    private org.slf4j.Logger logger;
+    // private org.slf4j.Logger logger;
     private TransactionLogic transactionlogic;
-    public ReturnTransactionLogic(TrcPromoAddon addon, ReceiptManager _receiptManager,CalculationPosService _calculationPosService,
+    public ReturnTransactionLogic(TrcPromoAddon addon, 
+    // ReceiptManager _receiptManager,
+    CalculationPosService _calculationPosService,
     TransactionLogic _transactionlogic) {
-        logger = LoggerFactory.getLogger(ReturnTransactionLogic.class);
-        receiptManager = _receiptManager;
-        _addon = addon;
+        // logger = LoggerFactory.getLogger(ReturnTransactionLogic.class);
+        // receiptManager = _receiptManager;
+        // _addon = addon;
         calculationPosService = _calculationPosService;
         transactionlogic=_transactionlogic;
     }
@@ -255,9 +257,16 @@ public class ReturnTransactionLogic {
                     if(sourcereceipt.getDiscountAmount().compareTo(BigDecimal.ZERO)>0)
                     {
                         //totalReminingAmount
-                        
+                        var _total=BigDecimal.valueOf(sourcereceipt.getSalesItems().stream().mapToDouble(a->
+                        a.getUnitGrossAmount()
+                        .multiply(a.getQuantity())
+                        .subtract(a.getDiscountAmount())
+                         .doubleValue()
+                        ).sum());
 
-                        targetReceipt.setDiscountAmount(sourcereceipt.getTotalGrossAmount().subtract(totalReminingAmount).negate());
+                        // targetReceipt.setDiscountAmount(sourcereceipt.getTotalGrossAmount().subtract(totalReminingAmount).negate());
+                        targetReceipt.setDiscountAmount(_total.subtract(totalReminingAmount).negate());
+
                         // targetReceipt.setDiscountAmount(sourcereceipt.getDiscountAmount().negate());
 
                         targetReceipt.setPercentageDiscount(false);

@@ -3,69 +3,69 @@
  */
 package com.trc.ccopromo;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+// import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sap.scco.ap.plugin.BasePlugin;
 import com.sap.scco.ap.plugin.BreakExecutionException;
-import com.sap.scco.ap.pos.dao.ReceiptManager;
+// import com.sap.scco.ap.pos.dao.ReceiptManager;
 
-import org.eclipse.persistence.indirection.IndirectList;
+// import org.eclipse.persistence.indirection.IndirectList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.sap.scco.ap.plugin.annotation.ListenToExit;
+// import com.sap.scco.ap.plugin.annotation.ListenToExit;
 import com.sap.scco.ap.plugin.annotation.PluginAt;
-import com.sap.scco.ap.plugin.annotation.PluginAt.POSITION;
-import com.sap.scco.ap.plugin.annotation.ui.JSInject;
+// import com.sap.scco.ap.plugin.annotation.PluginAt.POSITION;
+// import com.sap.scco.ap.plugin.annotation.ui.JSInject;
 // import com.sap.scco.ap.plugin.annotation.ui.JSInject;
 import com.sap.scco.ap.pos.service.*;
-import com.sap.scco.ap.pos.service.ReceiptChangeNotifierPosService;
-import com.sap.scco.ap.pos.service.PosService;
-import com.sap.scco.ap.pos.service.ReturnSalesItemPosService;
-import com.sap.scco.ap.pos.service.impl.SalesItemPosServiceImpl;
-import com.sap.scco.ap.pos.util.ui.BroadcasterHolder;
-import com.sap.scco.ap.pos.service.impl.ReturnSalesItemPosServiceImpl;
-import com.trc.ccopromo.models.*;
+// import com.sap.scco.ap.pos.service.ReceiptChangeNotifierPosService;
+// import com.sap.scco.ap.pos.service.PosService;
+// import com.sap.scco.ap.pos.service.ReturnSalesItemPosService;
+// import com.sap.scco.ap.pos.service.impl.SalesItemPosServiceImpl;
+// import com.sap.scco.ap.pos.util.ui.BroadcasterHolder;
+// import com.sap.scco.ap.pos.service.impl.ReturnSalesItemPosServiceImpl;
+// import com.trc.ccopromo.models.*;
 
-import ch.qos.logback.core.joran.conditional.ElseAction;
+// import ch.qos.logback.core.joran.conditional.ElseAction;
 
 import com.sap.scco.ap.pos.exception.InconsistentReceiptStateException;
-import com.sap.scco.ap.pos.exception.RequestProcessingException;
-import com.sap.scco.ap.pos.entity.MaterialEntity;
+// import com.sap.scco.ap.pos.exception.RequestProcessingException;
+// import com.sap.scco.ap.pos.entity.MaterialEntity;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
-import com.sap.scco.ap.pos.entity.SalesItemEntity;
-import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
-import com.sap.scco.ap.pos.entity.coupon.DiscountElementEntity;
+// import com.sap.scco.ap.pos.entity.SalesItemEntity;
+// import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
+// import com.sap.scco.ap.pos.entity.coupon.DiscountElementEntity;
 
-import java.util.ArrayList;
+// import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
+// import java.util.function.Function;
+// import java.util.stream.Collector;
+// import java.util.stream.Collectors;
 import java.util.HashMap;
-import java.util.List;
+// import java.util.List;
 import java.util.Map;
-import net.sf.json.JSONObject;
+// import net.sf.json.JSONObject;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.MathContext;
-import java.net.URI;
+// import java.math.MathContext;
+// import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
-import com.sap.scco.env.UIEventDispatcher;
-import com.sap.scco.cs.utilities.ReceiptHelper;
-import com.sap.scco.ap.pos.dao.IReceiptManager;
+// import java.net.http.HttpClient;
+// import java.net.http.HttpRequest;
+// import java.net.http.HttpResponse;
+// import java.time.Duration;
+// import com.sap.scco.env.UIEventDispatcher;
+// import com.sap.scco.cs.utilities.ReceiptHelper;
+// import com.sap.scco.ap.pos.dao.IReceiptManager;
 import com.sap.scco.ap.pos.dao.*;
-import com.sap.scco.ap.registry.UserRegistry;
+// import com.sap.scco.ap.registry.UserRegistry;
 import com.sap.scco.ap.returnreceipt.ReturnReceiptObject;
-import com.sap.scco.env.UIEventDispatcher;
-import com.sap.scco.util.CConst;
-import com.sap.scco.util.exception.ValidationException;
-import com.sap.scco.util.types.LogGDT;
-import com.sap.scco.ap.pos.entity.AdditionalFieldEntity;
-import com.sap.scco.ap.pos.entity.BaseEntity;
+// import com.sap.scco.env.UIEventDispatcher;
+// import com.sap.scco.util.CConst;
+// import com.sap.scco.util.exception.ValidationException;
+// import com.sap.scco.util.types.LogGDT;
+// import com.sap.scco.ap.pos.entity.AdditionalFieldEntity;
+// import com.sap.scco.ap.pos.entity.BaseEntity;
 
 public class TrcPromoAddon extends BasePlugin {
     // Data types
@@ -91,7 +91,7 @@ public class TrcPromoAddon extends BasePlugin {
     // private MaterialPosService materialPosService;
     // private PosService posService;
     // private ReceiptPosService receiptPosService;
-    private ReceiptManager receiptManager;
+    // private ReceiptManager receiptManager;
     // private SalesItemManager salesItemManager;
     private CalculationPosService calculationPosService;
     // private SalesItemPosService salesItemPosService;
@@ -110,7 +110,7 @@ public class TrcPromoAddon extends BasePlugin {
 
     @Override
     public String getVersion() {
-        return "2.1.4";
+        return "2.1.5";
     }
 
     @Override
@@ -118,7 +118,7 @@ public class TrcPromoAddon extends BasePlugin {
         // currentlyCalculating.set(false);
 
         this.dbSession = CDBSessionFactory.instance.createSession();
-        this.receiptManager = new ReceiptManager(dbSession);
+        // this.receiptManager = new ReceiptManager(dbSession);
         // this.receiptPosService =
         // ServiceFactory.INSTANCE.getOrCreateServiceInstance(ReceiptPosService.class,
         // dbSession);
@@ -178,7 +178,7 @@ public class TrcPromoAddon extends BasePlugin {
                 if (LockCalculation()) {
                     try {
                         logger.info("---------------- Calculation -------------------");
-                        TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager,
+                        TransactionLogic transactionLogic = new TransactionLogic(this, //receiptManager,
                                 calculationPosService);
                         transactionLogic.CalculatePromotios(receipt);
                         unlockCalculation();
@@ -207,7 +207,9 @@ public class TrcPromoAddon extends BasePlugin {
                 return Integer.valueOf(a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID).getValue()) > 0;
 
         })) {
-            TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+            TransactionLogic transactionLogic = new TransactionLogic(this, 
+            // receiptManager, 
+            calculationPosService);
             transactionLogic.postReceipt(transaction);
 
         }
@@ -225,10 +227,13 @@ public class TrcPromoAddon extends BasePlugin {
         if (this.getPluginConfig().getAdvreturn()) {
 
             ReceiptEntity targetReceipt = result.getIndividualItemsReceipt();
-            ReceiptEntity sourceReceipt = result.getSourceReceipt();
+            // ReceiptEntity sourceReceipt = result.getSourceReceipt();
             if (targetReceipt != null) {
-                TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-                ReturnTransactionLogic logic = new ReturnTransactionLogic(this, receiptManager, calculationPosService,
+                TransactionLogic transactionLogic = new TransactionLogic(this, //receiptManager,
+                 calculationPosService);
+                ReturnTransactionLogic logic = new ReturnTransactionLogic(this, 
+                // receiptManager,
+                 calculationPosService,
                         transactionLogic);
                 totalReminingAmount=logic.ItemForReturn(result, true);
             }
@@ -262,10 +267,12 @@ public class TrcPromoAddon extends BasePlugin {
         if (this.getPluginConfig().getAdvreturn()) {
 
             ReceiptEntity targetReceipt = result.getIndividualItemsReceipt();
-            ReceiptEntity sourceReceipt = result.getSourceReceipt();
+            // ReceiptEntity sourceReceipt = result.getSourceReceipt();
             if (targetReceipt != null) {
-                TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-                ReturnTransactionLogic logic = new ReturnTransactionLogic(this, receiptManager, calculationPosService,
+                TransactionLogic transactionLogic = new TransactionLogic(this, //receiptManager, 
+                calculationPosService);
+                ReturnTransactionLogic logic = new ReturnTransactionLogic(this//, receiptManager
+                , calculationPosService,
                         transactionLogic);
                 logic.ItemForReturn(result, false);
             }
@@ -281,11 +288,14 @@ public class TrcPromoAddon extends BasePlugin {
         if (args.length == 8)
             if (this.getPluginConfig().getAdvreturn()) {
                 ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
-                TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+                TransactionLogic transactionLogic = new TransactionLogic(this, 
+                // receiptManager, 
+                calculationPosService);
 
                 
 
-                ReturnTransactionLogic logic = new ReturnTransactionLogic(this, receiptManager, calculationPosService,
+                ReturnTransactionLogic logic = new ReturnTransactionLogic(this, //receiptManager, 
+                calculationPosService,
                         transactionLogic);
                 // String transactionId=(args[2]==null)?null:(String) args[2];
                 logic.moveReturnedReceiptToCurrentReceipt(receiptWithAdjustmentItems, result,returnWholeReceipt,totalReminingAmount);

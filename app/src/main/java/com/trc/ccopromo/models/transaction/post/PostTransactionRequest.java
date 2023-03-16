@@ -1,8 +1,8 @@
 package com.trc.ccopromo.models.transaction.post;
 
-import java.util.ArrayList;
+// import java.util.ArrayList;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+// import com.fasterxml.jackson.annotation.JsonProperty;
 
 
 // import com.fasterxml.jackson.databind.ObjectMapper; // version 2.11.1
