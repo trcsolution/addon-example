@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Function;
 import com.sap.scco.ap.pos.dao.ReceiptManager;
 import com.sap.scco.ap.pos.entity.AdditionalFieldEntity;
+import com.sap.scco.ap.pos.entity.BaseWithAdditionalFieldsEntity;
 import com.sap.scco.ap.pos.entity.ReceiptCalculationMetaData;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
 import com.sap.scco.ap.pos.entity.SalesItemEntity;
@@ -94,7 +95,7 @@ public class ReturnTransactionLogic {
                 collect(Collectors.toList()).stream().filter(a->a!=null).collect(Collectors.toList());
     }
 
-    com.trc.ccopromo.models.PromoResponse getTransactionDiscounts(ReceiptEntity receipt,List<com.trc.ccopromo.models.storedpromo.StoredPromo> usedpromos) throws IOException, InterruptedException, URISyntaxException
+    com.trc.ccopromo.models.PromoResponse getTransactionPromoDiscounts(ReceiptEntity receipt,List<com.trc.ccopromo.models.storedpromo.StoredPromo> usedpromos) throws IOException, InterruptedException, URISyntaxException
     {
         var request=transactionlogic.MakePromoRequest(receipt, null);
         request.promotions=usedpromos;
@@ -103,44 +104,87 @@ public class ReturnTransactionLogic {
         return m.readValue(response, com.trc.ccopromo.models.PromoResponse.class);
     }
 
-    Stream<SalesItemEntity> getSalesItems(ReceiptEntity receipt,String itemCode)
+    Stream<SalesItemEntity> getSalesItems(ReceiptEntity receipt)
+    {
+        return receipt.getSalesItems().stream().filter(b-> !b.getStatus().equalsIgnoreCase("3") );
+    }
+    Stream<SalesItemEntity> getSalesItem(ReceiptEntity receipt,String itemCode)
     {
         return receipt.getSalesItems().stream().filter(b->itemCode.equalsIgnoreCase(b.getId()) && !b.getStatus().equalsIgnoreCase("3") );
     }
-    static double OriginaSpentAmount=0;
-    public void ItemForReturn(ReturnReceiptObject returnReciept,boolean isStartReturn) throws IOException, InterruptedException, URISyntaxException
+    static BigDecimal OriginaSpentAmount=BigDecimal.ZERO;
+    static Boolean IsOriginaHeaderLevelDiscountPercentage=Boolean.FALSE;
+    static BigDecimal OriginaHeaderLevelDiscountPercentage=BigDecimal.ZERO;
+    static BigDecimal OriginaHeaderLevelDiscountAmount=BigDecimal.ZERO;
+
+    //
+    void ResetOriginalStates(ReceiptEntity sourceReceipt,ReceiptEntity actualOriginalReceipt,BigDecimal promoDiscount)
+    {
+        IsOriginaHeaderLevelDiscountPercentage=actualOriginalReceipt.isPercentageDiscount();
+        OriginaHeaderLevelDiscountPercentage=actualOriginalReceipt.getDiscountPercentage();
+        OriginaHeaderLevelDiscountAmount=actualOriginalReceipt.getDiscountAmount();
+
+        OriginaSpentAmount=BigDecimal.valueOf(getSalesItems(sourceReceipt).mapToDouble(a->a.getUnitGrossAmount().multiply(a.getQuantity()).doubleValue()).sum());
+        OriginaSpentAmount=OriginaSpentAmount.subtract(promoDiscount);
+        if(IsOriginaHeaderLevelDiscountPercentage)
+            OriginaHeaderLevelDiscountAmount=PercentageToAmount(OriginaSpentAmount,OriginaHeaderLevelDiscountPercentage);
+        OriginaSpentAmount=OriginaSpentAmount.subtract(OriginaHeaderLevelDiscountAmount);
+    }
+
+    BigDecimal PercentageToAmount(BigDecimal amount,BigDecimal percentage)
+    {
+        return amount.multiply(percentage.divide(BigDecimal.valueOf(100)).setScale(2,RoundingMode.HALF_UP).setScale(2,RoundingMode.HALF_UP));
+    }
+
+    //return totalReminingAmount
+    public BigDecimal ItemForReturn(ReturnReceiptObject returnReciept,boolean isStartReturn) throws IOException, InterruptedException, URISyntaxException
     {
         ReceiptEntity targetReceipt = returnReciept.getIndividualItemsReceipt();
         ReceiptEntity sourceReceipt = returnReciept.getSourceReceipt();
         ReceiptEntity actualOriginalReceipt1 = transactionlogic.LoadReceipt(returnReciept.getSourceReceipt().getId());
 
-        
-
-        
+        //Get Promotions used for that transaction
         var promotions=getPromotionsFromAdditionalItms(actualOriginalReceipt1);
-        var reminingDescounts=getTransactionDiscounts(sourceReceipt,promotions);
-        var promoDiscount=Double.parseDouble(reminingDescounts.discount);
+
+        //calculate promo discounts
+        var reminingDescounts=getTransactionPromoDiscounts(sourceReceipt,promotions);
+        var promoDiscount=new BigDecimal(reminingDescounts.discount);
         
+        //On the 'start return' get Spended Amount and Header Discount parameters
         if(isStartReturn)
-        {
-            OriginaSpentAmount=sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum();
-            OriginaSpentAmount-=promoDiscount;
-            OriginaSpentAmount-=actualOriginalReceipt1.getDiscountAmount().doubleValue();
-        }
+            ResetOriginalStates(sourceReceipt,actualOriginalReceipt1,promoDiscount);
 
 
+        
+
+        //Update sourceReceipt /left side list and totals/
+            transactionlogic.ResetSalesItems(sourceReceipt);
+            transactionlogic.ApplyPromoDiscountsToTransaction(reminingDescounts, sourceReceipt);
+            calculationPosService.calculate(sourceReceipt, EntityActions.CHECK_CONS);
+
+            //Calculate Total remining Amount
+            BigDecimal totalReminingAmount=BigDecimal.valueOf( getSalesItems(sourceReceipt).mapToDouble(a->{
+                return a.getGrossAmount().subtract(a.getDiscountAmount()).doubleValue();
+            }).sum()).setScale(2,RoundingMode.HALF_UP);
+            sourceReceipt.setPaymentGrossAmountWithoutReceiptDiscount(totalReminingAmount);
+            if(IsOriginaHeaderLevelDiscountPercentage)
+            {
+                var discount=PercentageToAmount(totalReminingAmount,OriginaHeaderLevelDiscountPercentage);
+                sourceReceipt.setDiscountAmount(discount);
+                totalReminingAmount=totalReminingAmount.subtract(discount).setScale(2,RoundingMode.HALF_UP);
+            }
+            else
+            {
+                totalReminingAmount=totalReminingAmount.subtract(OriginaHeaderLevelDiscountAmount).setScale(2,RoundingMode.HALF_UP);
+            }
+            sourceReceipt.setPaymentGrossAmount(totalReminingAmount);
 
         if(targetReceipt.getSalesItems().size()>0)
         {
-            
-                double spentAmount=OriginaSpentAmount;
-                double reminingAmount=sourceReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3") ).mapToDouble(a->a.getGrossAmount().doubleValue()).sum()
-                    -promoDiscount;
-
-                BigDecimal refundingAmount=BigDecimal.valueOf(spentAmount-reminingAmount).setScale(2,RoundingMode.HALF_UP);
+                BigDecimal refundingAmount=OriginaSpentAmount.subtract(totalReminingAmount).setScale(2,RoundingMode.HALF_UP);
                 if(refundingAmount.compareTo(BigDecimal.ZERO)<0)
                     refundingAmount=BigDecimal.ZERO;
-                BigDecimal planingRefundingAmount=BigDecimal.valueOf(targetReceipt.getSalesItems().stream().filter(a->!a.getStatus().equalsIgnoreCase("3")).mapToDouble(a->a.getGrossAmount().doubleValue()).sum());
+                BigDecimal planingRefundingAmount=BigDecimal.valueOf(getSalesItems(targetReceipt).filter(a->!a.getStatus().equalsIgnoreCase("3")).mapToDouble(a->a.getGrossAmount().doubleValue()).sum());
                 BigDecimal refAmount=refundingAmount;
                 for (SalesItemEntity entry : targetReceipt.getSalesItems()) {
                     if(!entry.getStatus().equalsIgnoreCase("3"))
@@ -162,19 +206,12 @@ public class ReturnTransactionLogic {
                                 refAmount=BigDecimal.ZERO;
                             }
                             refAmount=refAmount.subtract(linerefundamount);
-
-                            //rounding
-                            if(refAmount.equals(BigDecimal.valueOf(0.01)))
+                            if(refAmount.compareTo(entry.getUnitGrossAmount())<0)
                              {
                                 linerefundamount=linerefundamount.add(refAmount);
                                 refAmount=BigDecimal.ZERO;
                              }
-                             else
-                             if(refAmount.equals(BigDecimal.valueOf(-0.01)))
-                             {
-                                linerefundamount=linerefundamount.subtract(refAmount);
-                                refAmount=BigDecimal.ZERO;
-                             }
+                             
 
                             var linediscount=entry.getGrossAmount().subtract(linerefundamount);
 
@@ -192,48 +229,61 @@ public class ReturnTransactionLogic {
                 calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);
                 UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, targetReceipt);
         }
-        transactionlogic.ResetSalesItems(sourceReceipt);
-        transactionlogic.ApplyPromoDiscountsToTransaction(reminingDescounts, sourceReceipt);
-        calculationPosService.calculate(sourceReceipt, EntityActions.CHECK_CONS);
-        var totalrows=BigDecimal.valueOf(sourceReceipt.getSalesItems().stream().filter(a->a.getStatus().compareTo("3")!=0).mapToDouble(a->{
-            return a.getGrossAmount().subtract(a.getDiscountAmount()).doubleValue();
-        }).sum());
-        var discountOriginal=actualOriginalReceipt1.getDiscountAmount();
-        // sourceReceipt.setDiscountAmount(discountOriginal);
-        sourceReceipt.setPercentageDiscount(false);
-        if(totalrows.compareTo(BigDecimal.ZERO)==0)
-            discountOriginal=BigDecimal.ZERO;
-        // sourceReceipt.setDiscountPurposeCode("1000");
-        sourceReceipt.setDiscountAmount(discountOriginal);
-        sourceReceipt.setPaymentGrossAmountWithoutReceiptDiscount(totalrows);
-        sourceReceipt.setPaymentGrossAmount(totalrows.subtract(discountOriginal));
-        // sourceReceipt.setPaymentGrossAmountWithoutReceiptDiscount(BigDecimal.valueOf(16));
-        // sourceReceipt.setPaymentGrossAmount(BigDecimal.valueOf(19));
-        // var newgrossAmount=sourceReceipt.getTotalGrossAmount().subtract(actualOriginalReceipt.getDiscountAmount());
-        //  sourceReceipt.setTotalGrossAmount(BigDecimal.valueOf(15));
-        // setTotalGrossAmount(BigDecimal.valueOf(15));
-        // sourceReceipt.prin
-        // calculationPosService.calculate(sourceReceipt, EntityActions.CHECK_CONS);
         UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, sourceReceipt);
+        return totalReminingAmount;
     }
 
-    public void moveReturnedReceiptToCurrentReceipt(ReceiptEntity sourcereceipt,ReceiptEntity targetReceipt)
+    public void moveReturnedReceiptToCurrentReceipt(ReceiptEntity sourcereceipt,ReceiptEntity targetReceipt,boolean isWholeReceipt,BigDecimal totalReminingAmount)
     {
         int i=0;
-        for (SalesItemEntity entry : sourcereceipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3")).collect(Collectors.toList())) {
-            var targetEntry=targetReceipt.getSalesItems().get(i++);
-            var discountStr=entry.getAdditionalField("TRC_Discount");
-            if(discountStr!=null)
-                if(discountStr.getValue()!=null)
-                {
-                    var discount=new BigDecimal(discountStr.getValue());
-                    targetEntry.setReferenceSalesItem(null);
-                    targetEntry.setUnitGrossAmount(entry.getGrossAmount().subtract(discount));
-                    continue;
-                }
-                targetEntry.setGrossAmount(entry.getGrossAmount());
-                targetEntry.setUnitPriceChanged(true);
+        if(isWholeReceipt)
+        {
+                    // var originalReceipt=transactionlogic.LoadReceipt(TransactionId);
             
+                    for (SalesItemEntity entry : sourcereceipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3")).collect(Collectors.toList())) {
+                        var targetEntry=targetReceipt.getSalesItems().get(i++);
+        
+                        var promoId=targetEntry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID);
+                        
+                        if(promoId==null)
+                            continue;
+                        targetEntry.setReferenceSalesItem(null);
+                        targetEntry.setDiscountAmount(BigDecimal.ZERO);
+                        targetEntry.setUnitGrossAmount(entry.getGrossAmount().subtract(entry.getDiscountAmount()) .divide(entry.getQuantity()));
+        
+                    }
+                    if(sourcereceipt.getDiscountAmount().compareTo(BigDecimal.ZERO)>0)
+                    {
+                        //totalReminingAmount
+                        
+
+                        targetReceipt.setDiscountAmount(sourcereceipt.getTotalGrossAmount().subtract(totalReminingAmount).negate());
+                        // targetReceipt.setDiscountAmount(sourcereceipt.getDiscountAmount().negate());
+
+                        targetReceipt.setPercentageDiscount(false);
+                        
+                    }
+                    
+
+        }
+        else
+        {
+                for (SalesItemEntity entry : sourcereceipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3")).collect(Collectors.toList())) {
+                    var targetEntry=targetReceipt.getSalesItems().get(i++);
+                    var discountStr=entry.getAdditionalField("TRC_Discount");
+                    if(discountStr!=null)
+                        if(discountStr.getValue()!=null)
+                        {
+                            var discount=new BigDecimal(discountStr.getValue());
+                            targetEntry.setReferenceSalesItem(null);
+                            targetEntry.setDiscountAmount(BigDecimal.ZERO);
+                            targetEntry.setUnitGrossAmount(entry.getGrossAmount().subtract(discount).divide(entry.getQuantity()));
+                            // targetEntry.setUnitPriceChanged(true);
+                            continue;
+                        }
+                        targetEntry.setGrossAmount(entry.getGrossAmount());
+                        targetEntry.setUnitPriceChanged(true);
+                }
         }
     }
 }

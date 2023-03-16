@@ -41,7 +41,7 @@ public class WebRequest {
     }
 
     
-    public String Post(String url,Object data) throws IOException, InterruptedException,URISyntaxException 
+    public String Post(String url,Object data,boolean showlog) throws IOException, InterruptedException,URISyntaxException 
     {
             String sUrl=_config.getBaseUrl().endsWith("/")?_config.getBaseUrl().substring(0,_config.getBaseUrl().length()-1):_config.getBaseUrl();
             sUrl+=url;

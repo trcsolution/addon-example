@@ -79,13 +79,13 @@ public class TrcPromoAddon extends BasePlugin {
     public static final String SPECIAL_DISCOUNT_SERVICE_APIKEY = "SPECIAL_DISCOUNT_SERVICE_APIKEY";
     public static final String SPECIAL_DISCOUNT_SERVICE_SECURE = "SPECIAL_DISCOUNT_SERVICE_SECURE";
     public static final String SPECIAL_DISCOUNT_SERVICE_ADVANCED_RETURN = "SPECIAL_DISCOUNT_SERVICE_ADVANCED_RETURN";
-    
+
     private static Logger logger = LoggerFactory.getLogger(TrcPromoAddon.class);
     private static AtomicBoolean currentlyCalculating = new AtomicBoolean(false);
     // private static final HttpClient httpClient = HttpClient.newBuilder()
-    //         .version(HttpClient.Version.HTTP_1_1)
-    //         .connectTimeout(Duration.ofSeconds(10))
-    //         .build();
+    // .version(HttpClient.Version.HTTP_1_1)
+    // .connectTimeout(Duration.ofSeconds(10))
+    // .build();
     private CDBSession dbSession;
     // private PriceDiscountManager priceDiscountManager;
     // private MaterialPosService materialPosService;
@@ -96,7 +96,7 @@ public class TrcPromoAddon extends BasePlugin {
     private CalculationPosService calculationPosService;
     // private SalesItemPosService salesItemPosService;
     // private EntityFactory entiryFactiry;
-    // static private  Boolean ignoreCalculation=false;
+    // static private Boolean ignoreCalculation=false;
 
     @Override
     public String getId() {
@@ -110,23 +110,27 @@ public class TrcPromoAddon extends BasePlugin {
 
     @Override
     public String getVersion() {
-        return "2.1.1";
+        return "2.1.4";
     }
 
     @Override
     public void startup() {
         // currentlyCalculating.set(false);
-        
+
         this.dbSession = CDBSessionFactory.instance.createSession();
         this.receiptManager = new ReceiptManager(dbSession);
-        // this.receiptPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(ReceiptPosService.class, dbSession);
-        this.calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,dbSession);
-        // this.salesItemPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(SalesItemPosService.class,dbSession);
+        // this.receiptPosService =
+        // ServiceFactory.INSTANCE.getOrCreateServiceInstance(ReceiptPosService.class,
+        // dbSession);
+        this.calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,
+                dbSession);
+        // this.salesItemPosService =
+        // ServiceFactory.INSTANCE.getOrCreateServiceInstance(SalesItemPosService.class,dbSession);
 
         currentlyCalculating.set(false);
         super.startup();
     }
-    
+
     @Override
     public boolean persistPropertiesToDB() {
         return true;
@@ -134,7 +138,7 @@ public class TrcPromoAddon extends BasePlugin {
 
     public PluginConfig getPluginConfig() {
         PluginConfig pluginConfig = new PluginConfig();
-        
+
         pluginConfig.setBaseUrl(getProperty(SPECIAL_DISCOUNT_CALC_SERVICE_URL, "")); // "http://192.168.0.17:5261/api/Promo/Calculate"
         pluginConfig.setAPIKey(getProperty(SPECIAL_DISCOUNT_SERVICE_APIKEY, null));
         pluginConfig.setSecure(getProperty(SPECIAL_DISCOUNT_SERVICE_SECURE, false));
@@ -144,132 +148,149 @@ public class TrcPromoAddon extends BasePlugin {
 
     @Override
     public Map<String, String> getPluginPropertyConfig() {
-        Map<String, String> propConfig = new HashMap<>  ();
+        Map<String, String> propConfig = new HashMap<>();
         propConfig.put(SPECIAL_DISCOUNT_CALC_SERVICE_URL, TEXT);
         propConfig.put(SPECIAL_DISCOUNT_SERVICE_APIKEY, STRING);
         propConfig.put(SPECIAL_DISCOUNT_SERVICE_SECURE, BOOLEAN);
         propConfig.put(SPECIAL_DISCOUNT_SERVICE_ADVANCED_RETURN, BOOLEAN);
         return propConfig;
     }
-    public Boolean LockCalculation()
-    {
+
+    public Boolean LockCalculation() {
         return (currentlyCalculating.compareAndSet(false, true));
     }
-    public void unlockCalculation()
-    {
+
+    public void unlockCalculation() {
         currentlyCalculating.set(false);
     }
 
-    
     @PluginAt(pluginClass = CalculationPosService.class, method = "calculate", where = PluginAt.POSITION.BEFORE)
-    public void applyPromotions(Object proxy, Object[] args, StackTraceElement caller) throws InconsistentReceiptStateException {
-        try {
-            ReceiptEntity receipt = (ReceiptEntity) args[0];
-            if (args.length == 4 && ReceiptEntity.Status.NEW.equals(receipt.getStatus()) && receipt.getPaymentItems().isEmpty()) 
-            {
-            if(LockCalculation()) 
-            {
-                if (args.length == 4 && ReceiptEntity.Status.NEW.equals(receipt.getStatus()) && receipt.getPaymentItems().isEmpty()) 
-                {
-                    logger.info("---------------- Calculation -------------------");
-                    TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-                    transactionLogic.CalculatePromotios(receipt);
-                    // ReceiptHelper.markSalesItemsAsChanged(receipt);
-                } else if(args.length == 4 && !ReceiptEntity.Status.NEW.equals(receipt.getStatus())){
-                    logger.info("This is not a new receipt, not calculating discounts");
+    public void applyPromotions(Object proxy, Object[] args, StackTraceElement caller)
+            throws InconsistentReceiptStateException, IOException, InterruptedException, URISyntaxException {
+        // try {
+        ReceiptEntity receipt = (ReceiptEntity) args[0];
+
+        if (args.length == 4 && ReceiptEntity.Status.NEW.equals(receipt.getStatus())
+                && receipt.getPaymentItems().isEmpty()) {
+            boolean isAnySalesItem = receipt.getSalesItems().stream()
+                    .anyMatch(a -> !a.getStatus().equals("3") && a.getQuantity().compareTo(BigDecimal.ZERO) > 0);
+            if (isAnySalesItem)
+                if (LockCalculation()) {
+                    try {
+                        logger.info("---------------- Calculation -------------------");
+                        TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager,
+                                calculationPosService);
+                        transactionLogic.CalculatePromotios(receipt);
+                        unlockCalculation();
+                    } catch (Exception e) {
+                        unlockCalculation();
+                    }
+
                 }
-                unlockCalculation();
-            } else {
-                logger.info("Calculation run missed");
-            }
+
         }
-        } catch (InterruptedException e) {
-            unlockCalculation();
-            e.printStackTrace();
-        } catch (IOException e) {
-            unlockCalculation();
-            e.printStackTrace();
-        } catch (URISyntaxException e) {
-            unlockCalculation();
-            e.printStackTrace();
-        } 
+
     }
-    // @PluginAt(pluginClass = ReceiptPosService.class, method = "postReceipt", where = PluginAt.POSITION.AFTER)
-    // public Object postReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller)
+    // @PluginAt(pluginClass = ReceiptPosService.class, method = "postReceipt",
+    // where = PluginAt.POSITION.AFTER)
+    // public Object postReceipt(Object proxy, Object[] args, Object ret,
+    // StackTraceElement caller)
 
     @PluginAt(pluginClass = ReceiptPosService.class, method = "postReceipt", where = PluginAt.POSITION.BEFORE)
-    public Object postReceipt(Object proxy, Object[] args, Object ret) throws IOException, InterruptedException, URISyntaxException
-    {
-        ReceiptEntity transaction = (ReceiptEntity)args[0];
-        if(transaction.getSalesItems().stream().anyMatch(a->
-        {
-            if(a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID)==null)
-              return false;
-              else
-            return Integer.valueOf(a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID).getValue())>0;
-            
-        }
-        ))
-        {
+    public Object postReceipt(Object proxy, Object[] args, Object ret)
+            throws IOException, InterruptedException, URISyntaxException {
+        ReceiptEntity transaction = (ReceiptEntity) args[0];
+        if (transaction.getSalesItems().stream().anyMatch(a -> {
+            if (a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID) == null)
+                return false;
+            else
+                return Integer.valueOf(a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID).getValue()) > 0;
+
+        })) {
             TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
             transactionLogic.postReceipt(transaction);
-            
+
         }
         return ret;
     }
 
-
-
-
     @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "startReturn", where = PluginAt.POSITION.AFTER)
     public Object startReturn(Object proxy, Object[] args, Object ret, StackTraceElement caller)
-    throws BreakExecutionException, IOException, InterruptedException, URISyntaxException
-    
-     {
+            throws BreakExecutionException, IOException, InterruptedException, URISyntaxException
+
+    {
+        // logger.info("00000000");
+        totalReminingAmount=BigDecimal.ZERO;
         ReturnReceiptObject result = (ReturnReceiptObject) ret;
-        if(this.getPluginConfig().getAdvreturn())
-        {
+        if (this.getPluginConfig().getAdvreturn()) {
 
             ReceiptEntity targetReceipt = result.getIndividualItemsReceipt();
             ReceiptEntity sourceReceipt = result.getSourceReceipt();
             if (targetReceipt != null) {
                 TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-                ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
-                logic.ItemForReturn(result,true);
+                ReturnTransactionLogic logic = new ReturnTransactionLogic(this, receiptManager, calculationPosService,
+                        transactionLogic);
+                totalReminingAmount=logic.ItemForReturn(result, true);
             }
         }
         return result;
     }
+    boolean returnWholeReceipt=false;
+    BigDecimal totalReminingAmount=BigDecimal.ZERO;
+    @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "returnWholeReceipt", where = PluginAt.POSITION.BEFORE)
+    public Object returnWholeReceiptBefore(Object proxy, Object[] args, Object ret) {
+        // logger.info("-1-1-1-1-1-1-11");
+        returnWholeReceipt=true;
+        return null;
+    }
+
+    // @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "returnWholeReceipt", where = PluginAt.POSITION.AFTER)
+    // public Object returnWholeReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller)
+    //         throws BreakExecutionException, IOException, InterruptedException, URISyntaxException
+    // {
+    //     logger.info("11111111");
+    //     ReturnReceiptObject result = (ReturnReceiptObject) ret;
+    //     // if (this.getPluginConfig().getAdvreturn()) {
+    //     // }
+    //     return result;
+    // }
+
     @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveSalesItemByQuantity", where = PluginAt.POSITION.AFTER)
     public Object moveSalesItemByQuantity(Object proxy, Object[] args, Object ret, StackTraceElement caller)
-            throws BreakExecutionException, IOException, InterruptedException ,URISyntaxException
-            {
+            throws BreakExecutionException, IOException, InterruptedException, URISyntaxException {
         ReturnReceiptObject result = (ReturnReceiptObject) ret;
-        if(this.getPluginConfig().getAdvreturn())
-        {
+        if (this.getPluginConfig().getAdvreturn()) {
 
             ReceiptEntity targetReceipt = result.getIndividualItemsReceipt();
             ReceiptEntity sourceReceipt = result.getSourceReceipt();
             if (targetReceipt != null) {
                 TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-                ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
-                logic.ItemForReturn(result,false);
+                ReturnTransactionLogic logic = new ReturnTransactionLogic(this, receiptManager, calculationPosService,
+                        transactionLogic);
+                logic.ItemForReturn(result, false);
             }
         }
         return result;
     }
-    
+
     @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveReturnedReceiptToCurrentReceipt", where = PluginAt.POSITION.AFTER)
-    public Object moveReturnedReceiptToCurrentReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller) throws BreakExecutionException {
+    public Object moveReturnedReceiptToCurrentReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller)
+            throws BreakExecutionException {
+        // logger.info("22222222");
         ReceiptEntity result = (ReceiptEntity) ret;
-        if (args.length == 8) 
-            if(this.getPluginConfig().getAdvreturn())
-            {
-            ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
-            TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
-            ReturnTransactionLogic logic=new ReturnTransactionLogic(this, receiptManager, calculationPosService,transactionLogic);
-            logic.moveReturnedReceiptToCurrentReceipt(receiptWithAdjustmentItems, result);
-        }
+        if (args.length == 8)
+            if (this.getPluginConfig().getAdvreturn()) {
+                ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
+                TransactionLogic transactionLogic = new TransactionLogic(this, receiptManager, calculationPosService);
+
+                
+
+                ReturnTransactionLogic logic = new ReturnTransactionLogic(this, receiptManager, calculationPosService,
+                        transactionLogic);
+                // String transactionId=(args[2]==null)?null:(String) args[2];
+                logic.moveReturnedReceiptToCurrentReceipt(receiptWithAdjustmentItems, result,returnWholeReceipt,totalReminingAmount);
+            }
+        returnWholeReceipt=false;
         return result;
     }
 

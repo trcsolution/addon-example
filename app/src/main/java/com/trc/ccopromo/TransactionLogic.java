@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import com.sap.scco.ap.pos.exception.InconsistentReceiptStateException;
@@ -97,7 +98,9 @@ public class TransactionLogic {
     {
         CDBSession localSession = CDBSessionFactory.instance.createSession();
         ReceiptPosService localReceiptPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(ReceiptPosService.class, localSession);
-        return localReceiptPosService.getReceipt(id);
+        var rslt=localReceiptPosService.getReceipt(id);
+        localSession.close();
+        return rslt;
 
     }
     void ResetReceiptsSales(ReceiptEntity reciept)
@@ -215,6 +218,10 @@ public class TransactionLogic {
         }
 
     }
+    public static Stream<SalesItemEntity> getSalesItems(ReceiptEntity receipt)
+    {
+        return receipt.getSalesItems().stream().filter(b-> !b.getStatus().equalsIgnoreCase("3") );
+    }
 
     
 
@@ -265,6 +272,9 @@ public class TransactionLogic {
     public void CalculatePromotios(final ReceiptEntity receipt) throws IOException, InterruptedException, URISyntaxException {
         
             ResetSalesItems(receipt);
+            boolean isAnySalesItem=receipt.getSalesItems().stream().anyMatch(a->!a.getStatus().equals("3") && a.getQuantity().compareTo(BigDecimal.ZERO)>0);
+            if(isAnySalesItem)
+            {
             PromoResponse promos = RequestPromo(receipt,null);
             
             if(promos!=null)
@@ -273,7 +283,7 @@ public class TransactionLogic {
             {
                 ApplyPromoDiscountsToTransaction(promos,receipt);
             }
-           
+        }
 
         
     }
@@ -355,7 +365,7 @@ public class TransactionLogic {
     public String PostCalculationRequest(com.trc.ccopromo.models.PromoRequest promorequest) throws IOException, InterruptedException, URISyntaxException
     {
         var request = new WebRequest(_addon.getPluginConfig());
-        var response=request.Post("/api/Promo/Calculate", promorequest);
+        var response=request.Post("/api/Promo/Calculate", promorequest,true);
         return response;
     }
     public PromoResponse RequestPromo(ReceiptEntity _transaction,ArrayList<Integer> refPromos) throws IOException, InterruptedException, URISyntaxException {
@@ -392,7 +402,7 @@ public class TransactionLogic {
         
         // try {
             //save transaction online
-            String json = request.Post("/api/Promo/Save", requestObj);
+            String json = request.Post("/api/Promo/Save", requestObj,false);
             //save promos into transaction
             var mapper = new ObjectMapper();
             var promos=mapper.readValue("{\"p\":"+json+"}", com.trc.ccopromo.models.storedpromo.StoredPromos.class);
