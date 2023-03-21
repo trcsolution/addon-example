@@ -126,7 +126,8 @@ public class ReturnTransactionLogic {
         OriginaHeaderLevelDiscountPercentage=actualOriginalReceipt.getDiscountPercentage();
         OriginaHeaderLevelDiscountAmount=actualOriginalReceipt.getDiscountAmount();
 
-        OriginaSpentAmount=BigDecimal.valueOf(getSalesItems(sourceReceipt).mapToDouble(a->a.getUnitGrossAmount().multiply(a.getQuantity()).doubleValue()).sum());
+        OriginaSpentAmount=BigDecimal.valueOf(getSalesItems(sourceReceipt).mapToDouble(a->
+        a.getUnitGrossAmount().multiply(a.getQuantity()).setScale(2,RoundingMode.HALF_UP).doubleValue()).sum());
         OriginaSpentAmount=OriginaSpentAmount.subtract(promoDiscount);
         if(IsOriginaHeaderLevelDiscountPercentage)
             OriginaHeaderLevelDiscountAmount=PercentageToAmount(OriginaSpentAmount,OriginaHeaderLevelDiscountPercentage);
@@ -166,12 +167,12 @@ public class ReturnTransactionLogic {
 
             //Calculate Total remining Amount
             BigDecimal totalReminingAmount=BigDecimal.valueOf( getSalesItems(sourceReceipt).mapToDouble(a->{
-                return a.getGrossAmount().subtract(a.getDiscountAmount()).doubleValue();
+                return a.getGrossAmount().subtract(a.getDiscountAmount()).setScale(2,RoundingMode.HALF_UP).doubleValue();
             }).sum()).setScale(2,RoundingMode.HALF_UP);
             sourceReceipt.setPaymentGrossAmountWithoutReceiptDiscount(totalReminingAmount);
             if(IsOriginaHeaderLevelDiscountPercentage)
             {
-                var discount=PercentageToAmount(totalReminingAmount,OriginaHeaderLevelDiscountPercentage);
+                var discount=PercentageToAmount(totalReminingAmount,OriginaHeaderLevelDiscountPercentage).setScale(2,RoundingMode.HALF_UP);
                 sourceReceipt.setDiscountAmount(discount);
                 totalReminingAmount=totalReminingAmount.subtract(discount).setScale(2,RoundingMode.HALF_UP);
             }
@@ -183,7 +184,7 @@ public class ReturnTransactionLogic {
 
         if(targetReceipt.getSalesItems().size()>0)
         {
-                BigDecimal refundingAmount=OriginaSpentAmount.subtract(totalReminingAmount).setScale(2,RoundingMode.HALF_UP);
+                BigDecimal refundingAmount=OriginaSpentAmount.subtract(totalReminingAmount).setScale(2,RoundingMode.HALF_DOWN);
                 if(refundingAmount.compareTo(BigDecimal.ZERO)<0)
                     refundingAmount=BigDecimal.ZERO;
                 BigDecimal planingRefundingAmount=BigDecimal.valueOf(getSalesItems(targetReceipt).filter(a->!a.getStatus().equalsIgnoreCase("3")).mapToDouble(a->a.getGrossAmount().doubleValue()).sum());
@@ -245,10 +246,11 @@ public class ReturnTransactionLogic {
                     for (SalesItemEntity entry : sourcereceipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3")).collect(Collectors.toList())) {
                         var targetEntry=targetReceipt.getSalesItems().get(i++);
         
-                        var promoId=targetEntry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID);
+                       // var promoId=targetEntry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID);
+                        //var promoId=entry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID);
+                        // if(promoId==null)
+                        //     continue;
                         
-                        if(promoId==null)
-                            continue;
                         targetEntry.setReferenceSalesItem(null);
                         targetEntry.setDiscountAmount(BigDecimal.ZERO);
                         targetEntry.setUnitGrossAmount(entry.getGrossAmount().subtract(entry.getDiscountAmount()) .divide(entry.getQuantity()));
