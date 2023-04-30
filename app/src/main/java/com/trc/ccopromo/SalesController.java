@@ -1,0 +1,117 @@
+package com.trc.ccopromo;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+
+import org.slf4j.LoggerFactory;
+
+import com.sap.scco.ap.pos.dao.CDBSession;
+import com.sap.scco.ap.pos.dao.ReceiptManager;
+import com.sap.scco.ap.pos.entity.BusinessPartnerEntity;
+import com.sap.scco.ap.pos.entity.ReceiptEntity;
+import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
+import com.sap.scco.ap.pos.service.CalculationPosService;
+import com.sap.scco.ap.pos.service.ReceiptPosService;
+import com.sap.scco.ap.pos.service.ServiceFactory;
+import com.sap.scco.ap.returnreceipt.ReturnReceiptObject;
+import com.trc.ccopromo.services.SalesService;
+import com.trc.ccopromo.services.Misc;
+import com.trc.ccopromo.services.ReturnService;
+import java.math.BigDecimal;
+
+public class SalesController {
+
+    private  SalesService trcPromoService;
+    
+    //private  Ret trcPromoService;
+    private CDBSession dbSession; 
+    private org.slf4j.Logger logger;
+
+    public SalesController(TrcPromoAddon addon,CDBSession dbSession)
+    {
+        logger = LoggerFactory.getLogger(SalesController.class);
+        this.dbSession=dbSession;
+        this.trcPromoService=new SalesService(addon,dbSession);
+        
+
+    }
+    
+    public void setBusinessPartner(ReceiptEntity receipt,BusinessPartnerEntity businessPartner)
+    {
+        this.trcPromoService.Calculate(receipt);
+    }
+    public void onSalesItemAddedToReceipt(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, java.util.List<com.sap.scco.ap.pos.entity.SalesItemEntity> salesItems, java.math.BigDecimal quantity)
+    {
+        this.trcPromoService.Calculate(receipt);
+        
+    }
+    public void onSalesItemUpdated(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem)//, java.math.BigDecimal quantity 
+    {
+
+        if(IdDISCOUNT_SOURCEManual)
+        {
+            IdDISCOUNT_SOURCEManual=false;
+            trcPromoService.MarkItemAsManualDiscounted(salesItem, true);
+            Misc.ClearPromo(salesItem,false);
+            Misc.AddNote(salesItem, "Manually discounted");
+            this.trcPromoService.Calculate(receipt);
+
+        }
+        else
+        {
+
+            this.trcPromoService.Calculate(receipt);
+            // receipt.getAdditionalFields()
+            // new ReceiptManager(dbSession).update(receipt);
+            var calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,dbSession);
+            calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
+        }
+    }
+    public void onSalesItemVoided(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem) {
+        this.trcPromoService.Calculate(receipt);
+
+    }
+    static boolean IdDISCOUNT_SOURCEManual =false;
+    public void onManuallyUpdateItemDiscount(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem) {
+        IdDISCOUNT_SOURCEManual=true;
+    }
+
+    public void removeSalesItemNote(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem)//, java.math.BigDecimal quantity
+    {
+        // var field=;
+        if(salesItem.getAdditionalField(com.trc.ccopromo.models.Constants.DISCOUNT_SOURCE)!=null)
+        {
+            trcPromoService.MarkItemAsManualDiscounted(salesItem,false);
+            this.trcPromoService.Calculate(receipt);
+        }
+        else
+        if(salesItem.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID)!=null)
+        {
+            var PromoId=salesItem.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID).getValue();
+            Misc.AddNote(salesItem,  "Promo:"+PromoId);
+        }
+
+    }
+    public void onCouponRemoved(com.sap.scco.ap.pos.entity.ReceiptEntity receipt) {
+       
+        this.trcPromoService.Calculate(receipt);
+    }
+    public void onCouponAdded(com.sap.scco.ap.pos.entity.ReceiptEntity receipt) {
+       
+        this.trcPromoService.onCouponAdded(receipt);
+       //new ReceiptManager(dbSession).update(receipt);
+    }
+
+    public void postReceipt(ReceiptEntity receipt) {
+        try {
+            this.trcPromoService.postReceipt(receipt);
+        } catch (IOException | InterruptedException | URISyntaxException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+    
+    
+
+
+}

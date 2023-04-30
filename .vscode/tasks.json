@@ -2,14 +2,22 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"type": "gradle",
-			"id": "c:\\Users\\achab\\work\\CCO\\app3jarapp3",
-			"script": "jar",
-			"description": "Assembles a jar archive containing the main classes.",
+			"label": "Build",
+			"type": "shell",
+  			"command": "echo Hello",
+  			"dependsOrder": "sequence",
 			"group": {
 				"kind": "build",
 				"isDefault": true
 			},
+			"dependsOn": ["Build Jar","copyJar1"]
+		  },
+		{
+			"type": "gradle",
+			"id": "c:\\Users\\achab\\work\\CCO\\app3jarapp3",
+			"script": "jar",
+			"description": "Assembles a jar archive containing the main classes.",
+			
 			"project": "trcpromo",
 			"buildFile": "${workspaceFolder}\\build.gradle",
 			"rootProject": "app3",
@@ -20,7 +28,7 @@
 			"problemMatcher": [
 				"$gradle"
 			],
-			"label": "gradle: jar"
+			"label": "Build Jar"
 		},
 		{
 			

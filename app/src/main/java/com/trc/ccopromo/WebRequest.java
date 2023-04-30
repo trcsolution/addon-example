@@ -9,6 +9,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 // import java.util.ArrayList;
 // import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 // import com.beust.jcommander.JCommander.Builder;
 // import com.fasterxml.jackson.core.JsonProcessingException;
@@ -20,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 // import com.trc.ccopromo.models.transaction.post.Data;
 // import com.trc.ccopromo.models.transaction.post.Item;
 // import com.trc.ccopromo.models.transaction.post.PostTransactionRequest;
+import com.sap.scco.ap.pos.dao.CDBSession;
 
 // import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
@@ -29,6 +31,7 @@ import org.slf4j.LoggerFactory;
 public class WebRequest {
 
     private Logger logger = LoggerFactory.getLogger(TrcPromoAddon.class);
+    
 
     private PluginConfig _config;
     private final HttpClient httpClient = HttpClient.newBuilder()
