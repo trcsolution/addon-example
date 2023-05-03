@@ -12,7 +12,8 @@ public class Item
         this.price=price;
         this.discount=discount;
         this.promoId=0;
-        if(additionalFieldEntity!=null)
+        
+        if(additionalFieldEntity!=null && !additionalFieldEntity.getValue().isBlank())
         this.promoId=Integer.valueOf(additionalFieldEntity.getValue());
     }
     public String itemId;

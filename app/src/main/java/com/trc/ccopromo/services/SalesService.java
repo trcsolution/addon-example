@@ -16,12 +16,15 @@ import com.sap.scco.ap.pos.dao.ReceiptManager;
 import com.sap.scco.ap.pos.entity.AdditionalFieldEntity;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
 import com.sap.scco.ap.pos.entity.SalesItemEntity;
+import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
 import com.sap.scco.ap.pos.exception.InconsistentReceiptStateException;
 import com.sap.scco.ap.pos.service.CalculationPosService;
 import com.sap.scco.ap.pos.service.ReceiptPosService;
 import com.sap.scco.ap.pos.service.SalesItemPosService;
 import com.sap.scco.ap.pos.service.ServiceFactory;
 import com.sap.scco.ap.registry.UserRegistry;
+import com.sap.scco.env.UIEventDispatcher;
+import com.sap.scco.util.CConst;
 // import com.trc.ccopromo.TransactionTools;
 import com.trc.ccopromo.TrcPromoAddon;
 import com.trc.ccopromo.models.PromoResponse;
@@ -92,7 +95,7 @@ public class SalesService extends BasePromoService {
                 if(promos.itemDiscounts!=null)
                     if(!promos.itemDiscounts.isEmpty())
                 {
-                    ApplyPromoDiscountsToTransaction(promos,receipt);
+                    ApplyPromoDiscountsToTransaction(promos,receipt,BigDecimal.ZERO);
                 }
 
 
@@ -108,22 +111,35 @@ public class SalesService extends BasePromoService {
             }
             
          }
-        
     }
 
     public void onCouponAdded(com.sap.scco.ap.pos.entity.ReceiptEntity receipt) {
        this.getSalesItems(receipt).forEach(a->{
         if(!a.getDiscountElements().isEmpty())
+        {
+            MarkItemAsManualDiscounted(a,false);
             Misc.ClearPromo(a, true);
+
+        }
        });
-        //Calculate(receipt);
+    ///    Calculate(receipt);
+        receiptManager.update(receipt);
     }
+    public void onCouponRemoved(com.sap.scco.ap.pos.entity.ReceiptEntity receipt) {
+        // MarkItemAsManualDiscounted()
+        Calculate(receipt);
+        calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
+        // UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, receipt);
+    }
+
 
     
 
 
     public void postReceipt(ReceiptEntity receipt) throws IOException, InterruptedException, URISyntaxException 
     {
+        if(receipt.getStatus()!="2")
+            return;
         PostTransactionRequest requestObj=new PostTransactionRequest();
         requestObj.data=new com.trc.ccopromo.models.transaction.post.Data();
         requestObj.data.transactionNumber=receipt.getId();

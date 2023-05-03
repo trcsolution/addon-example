@@ -45,15 +45,21 @@ public class Misc {
         return rslt;
     }
     
-    public static Boolean HasPromo(SalesItemEntity entry)
+    public static String getAdditionalField(SalesItemEntity entry,String fieldName)
     {
-        var field=entry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID);
+        var field=entry.getAdditionalField(fieldName);
         if(field==null)
-          return false;
+          return null;
           var rslt=field.getValue();
           if(rslt==null)
-           return false;
-           return rslt.length()>0;
+           return null;
+           return rslt.length()>0?rslt:null;
+    }
+
+    public static Boolean HasPromo(SalesItemEntity entry)
+    {
+        return getAdditionalField(entry,com.trc.ccopromo.models.Constants.PROMO_ID)!=null;
+        
     }
     public static void ClearPromo(SalesItemEntity entry,boolean clearNote)
     {
@@ -153,6 +159,9 @@ public class Misc {
     {
         
         if(entry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID)==null)
+                return Integer.valueOf(0);
+            else
+            if(entry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID).getValue().length()==0)
                 return Integer.valueOf(0);
             else
                 return Integer.parseInt(entry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID).getValue());

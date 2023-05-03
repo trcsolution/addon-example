@@ -1,6 +1,7 @@
 package com.trc.ccopromo.services;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -45,8 +46,9 @@ public class BasePromoService {
     }
     public  Boolean IsDiscountableItem(SalesItemEntity salesItem)
     {
-        return !salesItemPosService.isSalesItemInvalid(salesItem) 
-        && !salesItemPosService.isSalesItemVoid(salesItem)
+        return 
+        // !salesItemPosService.isSalesItemInvalid(salesItem) && 
+        !salesItemPosService.isSalesItemVoid(salesItem)
         && !salesItemPosService.isVoucherSalesItem(salesItem)
         && salesItem.getQuantity().compareTo(BigDecimal.ZERO)>0;
         // && salesItem.getDiscountElements().isEmpty()  
@@ -87,19 +89,34 @@ public class BasePromoService {
                     Misc.ClearPromo(salesItem,true);
                     if(salesItem.getDiscountElements().isEmpty() )
                     //  if(_addon.transactionState.getDiscountsource(salesItem.getKey())!=DiscountSource.Manualy)
+                    
+                        salesItem.setPaymentGrossAmountWithoutReceiptDiscount(salesItem.getQuantity().multiply(salesItem.getUnitGrossAmount()).setScale(2,RoundingMode.HALF_UP));
                         SetLineDiscount(salesItem,BigDecimal.ZERO);
                 });
     }
-    public  void ApplyPromoDiscountsToTransaction(PromoResponse promoResp,ReceiptEntity receipt)
+    public  void ApplyPromoDiscountsToTransaction(PromoResponse promoResp,ReceiptEntity receipt,BigDecimal headerDiscountPercent)
         {
             var promoDiscounts=promoResp.itemDiscounts.stream().collect(Collectors.groupingBy(a->a.promoId,Collectors.summingDouble(a->a.discount)));
                 promoDiscounts.keySet().forEach(a->
                     {
                         //promoResp.itemDiscounts.
                         List<String> items=promoResp.itemDiscounts.stream().filter(b->b.promoId==a.intValue()).map(b->b.itemCode).collect(Collectors.toList());
-                        ApplyPromoDiscount(receipt,items,a,promoDiscounts.get(a));
+                        ApplyPromoDiscount(receipt,items,a,promoDiscounts.get(a),headerDiscountPercent);
                     });
         }
+        protected void SetItemAsInitiallyPromo(SalesItemEntity salesItem,Boolean isPromoItem)
+        {
+            Misc.setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.IS_PROMOITEM,isPromoItem.toString());
+        }
+        protected Boolean IsItemInitiallyPromo(SalesItemEntity salesItem)
+        {
+            String value=Misc.getAdditionalField(salesItem,com.trc.ccopromo.models.Constants.IS_PROMOITEM);
+            if(value==null)
+                return false;
+                else
+                return Boolean.parseBoolean(value);
+        }
+        
 
         public boolean HasCoupon(SalesItemEntity salesItem)
         {
@@ -111,24 +128,31 @@ public class BasePromoService {
 
         public boolean IsManualDiscounted(SalesItemEntity salesItem)
         {
-            var field=salesItem.getAdditionalField(com.trc.ccopromo.models.Constants.DISCOUNT_SOURCE);
-            if(field==null)
-            return false;
-            var rslt=field.getValue();
-            if(rslt==null)
-            return false;
-            return rslt==com.trc.ccopromo.models.Constants.DISCOUNT_SOURCE_MANUAL;
-
+            String value=Misc.getAdditionalField(salesItem,com.trc.ccopromo.models.Constants.DISCOUNT_SOURCE);
+            if(value==null)
+                return false;
+                else
+                return value==com.trc.ccopromo.models.Constants.DISCOUNT_SOURCE_MANUAL;
         }
 
-        private void ApplyPromoDiscount(ReceiptEntity receipt,List<String> items,int PromoId,Double _discount) {
+        protected String getPromoId(SalesItemEntity salesItem)
+        {
+            return Misc.getAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_ID);
+        }
+
+        protected void MarkAsPromo(SalesItemEntity salesItem,String PromoId)
+        {
+            Misc.setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_ID,PromoId);
+        }
+        protected void ApplyPromoDiscount(ReceiptEntity receipt,List<String> items,int PromoId,Double _discount,BigDecimal headerDiscountPercent) {
         
             var totalAmount=receipt.getSalesItems().stream().filter(a->this.IsDiscountableItem(a) && items.contains(a.getId()))
                 .mapToDouble(a->a.getUnitGrossAmount().multiply(a.getQuantity())
                 .doubleValue()).sum();
                 
             var customer=receipt.getBusinessPartner();
-            final BigDecimal customerDiscount=customer==null?BigDecimal.ZERO:customer.getDiscountPercentage();
+            final BigDecimal customerDiscount=(customer==null?BigDecimal.ZERO:customer.getDiscountPercentage()).add(headerDiscountPercent);
+
             final Double discount=_discount;
             var salesItems=receipt.getSalesItems().stream().filter(a->this.IsDiscountableItem(a) && items.contains(a.getId()));
             salesItems.forEach(salesItem->
@@ -150,7 +174,8 @@ public class BasePromoService {
                     SetLineDiscount(salesItem,linediscount);
                     salesItem.setUnitPriceChanged(true);
                     Misc.AddNote(salesItem,  "Promo:"+String.valueOf(PromoId));
-                    Misc.setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_ID,Integer.toString(PromoId));
+                    MarkAsPromo(salesItem,Integer.toString(PromoId));
+                    
                 }
             });
     

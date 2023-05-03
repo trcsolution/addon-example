@@ -335,7 +335,7 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
             // if (this.getPluginConfig().getAdvreturn()) 
             {
                 ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
-                ReturnController controller=new ReturnController(this,((ReceiptPosService)proxy).getDbSession());
+                ReturnController controller=new ReturnController(this,((ReturnReceiptPosService)proxy).getDbSession());
                 controller.moveReturnedReceiptToCurrentReceipt(receiptWithAdjustmentItems, result,returnWholeReceipt,totalReminingAmount);
             }
         returnWholeReceipt=false;

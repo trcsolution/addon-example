@@ -14,6 +14,7 @@ import com.sap.scco.ap.pos.service.CalculationPosService;
 import com.sap.scco.ap.pos.service.ReceiptPosService;
 import com.sap.scco.ap.pos.service.ServiceFactory;
 import com.sap.scco.ap.returnreceipt.ReturnReceiptObject;
+import com.sap.scco.util.CConst;
 import com.trc.ccopromo.services.SalesService;
 import com.trc.ccopromo.services.Misc;
 import com.trc.ccopromo.services.ReturnService;
@@ -43,6 +44,9 @@ public class SalesController {
     public void onSalesItemAddedToReceipt(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, java.util.List<com.sap.scco.ap.pos.entity.SalesItemEntity> salesItems, java.math.BigDecimal quantity)
     {
         this.trcPromoService.Calculate(receipt);
+        var calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,dbSession);
+            calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
+            
         
     }
     public void onSalesItemUpdated(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem)//, java.math.BigDecimal quantity 
@@ -51,10 +55,17 @@ public class SalesController {
         if(IdDISCOUNT_SOURCEManual)
         {
             IdDISCOUNT_SOURCEManual=false;
+            salesItem.setDiscountAmount(manualDIscountAmount);
+            var item=receipt.getSalesItems().stream().filter(a->a.getKey()==salesItem.getKey()).findFirst().get();
+            item.setDiscountAmount(manualDIscountAmount);
             trcPromoService.MarkItemAsManualDiscounted(salesItem, true);
             Misc.ClearPromo(salesItem,false);
             Misc.AddNote(salesItem, "Manually discounted");
-            this.trcPromoService.Calculate(receipt);
+            // this.trcPromoService.Calculate(receipt);
+
+            // var calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,dbSession);
+            // calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
+        
 
         }
         else
@@ -72,8 +83,10 @@ public class SalesController {
 
     }
     static boolean IdDISCOUNT_SOURCEManual =false;
+    static BigDecimal manualDIscountAmount;
     public void onManuallyUpdateItemDiscount(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem) {
         IdDISCOUNT_SOURCEManual=true;
+        manualDIscountAmount=salesItem.getDiscountAmount();
     }
 
     public void removeSalesItemNote(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem)//, java.math.BigDecimal quantity
@@ -83,7 +96,10 @@ public class SalesController {
         {
             trcPromoService.MarkItemAsManualDiscounted(salesItem,false);
             this.trcPromoService.Calculate(receipt);
+            var calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,this.dbSession);
+            calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
         }
+        
         else
         if(salesItem.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID)!=null)
         {
@@ -94,7 +110,10 @@ public class SalesController {
     }
     public void onCouponRemoved(com.sap.scco.ap.pos.entity.ReceiptEntity receipt) {
        
-        this.trcPromoService.Calculate(receipt);
+        this.trcPromoService.onCouponRemoved(receipt);
+        // Calculate(receipt);
+        //         calculationPosService.calculate(reciept, EntityActions.CHECK_CONS);
+        // UIEventDispatcher.INSTANCE.dispatchAction(CConst.UIEventsIds.RECEIPT_REFRESH, null, reciept);
     }
     public void onCouponAdded(com.sap.scco.ap.pos.entity.ReceiptEntity receipt) {
        
