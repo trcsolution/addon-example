@@ -192,8 +192,8 @@ public class ReturnService extends BasePromoService {
                                 }
                                 else
                                 {
-                                    linediscount=linetotal;
-                                    returnedAmount=returnedAmount.add(linediscount).setScale(2,RoundingMode.HALF_UP);
+                                    linediscount=BigDecimal.ZERO;
+                                    returnedAmount=returnedAmount.add(linetotal).setScale(2,RoundingMode.HALF_UP);
                                     toReturn=BigDecimal.ZERO;
                                 }
 
@@ -201,7 +201,7 @@ public class ReturnService extends BasePromoService {
                                 {
                                     Misc.setAdditionalField(salesItem, "TRC_Discount",linediscount.toString());
                                     SetLineDiscount(salesItem, linediscount);
-                                    logger.info("Ok");
+                                    // logger.info("Ok");
                                 }
                             }
 
