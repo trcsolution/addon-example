@@ -39,14 +39,12 @@ public class SalesController {
     
     public void setBusinessPartner(ReceiptEntity receipt,BusinessPartnerEntity businessPartner)
     {
-        this.trcPromoService.Calculate(receipt);
+        this.trcPromoService.setBusinessPartner(receipt,businessPartner);
+        
     }
     public void onSalesItemAddedToReceipt(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, java.util.List<com.sap.scco.ap.pos.entity.SalesItemEntity> salesItems, java.math.BigDecimal quantity)
     {
-        this.trcPromoService.Calculate(receipt);
-        var calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,dbSession);
-            calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
-            
+        this.trcPromoService.onSalesItemAddedToReceipt(receipt,salesItems,quantity);
         
     }
     public void onSalesItemUpdated(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem)//, java.math.BigDecimal quantity 
@@ -65,12 +63,9 @@ public class SalesController {
 
             // var calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,dbSession);
             // calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
-        
-
         }
         else
         {
-
             this.trcPromoService.Calculate(receipt);
             // receipt.getAdditionalFields()
             // new ReceiptManager(dbSession).update(receipt);
@@ -91,7 +86,6 @@ public class SalesController {
 
     public void removeSalesItemNote(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem)//, java.math.BigDecimal quantity
     {
-        // var field=;
         if(salesItem.getAdditionalField(com.trc.ccopromo.models.Constants.DISCOUNT_SOURCE)!=null)
         {
             trcPromoService.MarkItemAsManualDiscounted(salesItem,false);
@@ -103,8 +97,11 @@ public class SalesController {
         else
         if(salesItem.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID)!=null)
         {
+            this.trcPromoService.Calculate(receipt);
             var PromoId=salesItem.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID).getValue();
             Misc.AddNote(salesItem,  "Promo:"+PromoId);
+            var calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,this.dbSession);
+            calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
         }
 
     }

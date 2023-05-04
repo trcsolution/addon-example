@@ -138,7 +138,7 @@ public class ReturnService extends BasePromoService {
                         headerDiscountPercent.divide(BigDecimal.valueOf(100))
                     ).setScale(2, RoundingMode.HALF_UP);
 
-                    var linediscount=newDiscount;//.add(salesItem.getDiscountAmount());
+                    var linediscount=newDiscount.add(isStartReturn?salesItem.getDiscountAmount():BigDecimal.ZERO);
 
                     SetLineDiscount(salesItem,linediscount);
                     salesItem.setUnitPriceChanged(true);

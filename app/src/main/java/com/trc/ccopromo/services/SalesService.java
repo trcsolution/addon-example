@@ -17,6 +17,7 @@ import com.sap.scco.ap.pos.entity.AdditionalFieldEntity;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
 import com.sap.scco.ap.pos.entity.SalesItemEntity;
 import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
+import com.sap.scco.ap.pos.entity.BusinessPartnerEntity;
 import com.sap.scco.ap.pos.exception.InconsistentReceiptStateException;
 import com.sap.scco.ap.pos.service.CalculationPosService;
 import com.sap.scco.ap.pos.service.ReceiptPosService;
@@ -80,7 +81,18 @@ public class SalesService extends BasePromoService {
             else
             Misc.setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.DISCOUNT_SOURCE,null); 
     }
-    
+    public void setBusinessPartner(ReceiptEntity receipt,BusinessPartnerEntity businessPartner)
+    {
+        this.Calculate(receipt);
+        calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
+    }
+    public void onSalesItemAddedToReceipt(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, java.util.List<com.sap.scco.ap.pos.entity.SalesItemEntity> salesItems, java.math.BigDecimal quantity)
+    {
+        this.Calculate(receipt);
+        calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
+        
+    }
+
         
     public void Calculate(ReceiptEntity receipt)  {
         ResetSalesItems(receipt);
