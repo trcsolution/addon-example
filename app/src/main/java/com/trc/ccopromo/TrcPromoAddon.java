@@ -110,7 +110,7 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
 
     @Override
     public String getVersion() {
-        return "2.4.1";
+        return "2.4.2";
     } 
     @Override
     public boolean persistPropertiesToDB() {
@@ -296,7 +296,10 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
 
     {
         ReturnReceiptObject result = (ReturnReceiptObject) ret;
-        ReturnController controller=new ReturnController(this,((ReturnReceiptPosService)proxy).getDbSession());
+        ReceiptEntity targetReceipt = result.getIndividualItemsReceipt();
+        ReceiptEntity sourceReceipt = result.getSourceReceipt();
+
+        ReturnController controller=new ReturnController(this,((ReturnReceiptPosService)proxy).getDbSession(),sourceReceipt,targetReceipt,true);
         controller.startReturn(result);
         return result;
     }
@@ -304,15 +307,15 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
     @PluginAt(pluginClass = ReturnReceiptPosService.class, method = "moveSalesItemByQuantity", where = PluginAt.POSITION.AFTER)
     public Object moveSalesItemByQuantity(Object proxy, Object[] args, Object ret, StackTraceElement caller)
             throws BreakExecutionException, IOException, InterruptedException, URISyntaxException {
-        ReturnReceiptObject result = (ReturnReceiptObject) ret;
+        ReturnReceiptObject returnReceipts = (ReturnReceiptObject) ret;
         if (this.getPluginConfig().getAdvreturn()) {
-
-            ReceiptEntity targetReceipt = result.getIndividualItemsReceipt();
-            ReturnController controller=new ReturnController(this,((ReturnReceiptPosService)proxy).getDbSession());
-                controller.moveSalesItemByQuantity(result);
+            ReceiptEntity targetReceipt = returnReceipts.getIndividualItemsReceipt();
+            ReceiptEntity sourceReceipt = returnReceipts.getSourceReceipt();
+            ReturnController controller=new ReturnController(this,((ReturnReceiptPosService)proxy).getDbSession(),sourceReceipt,targetReceipt,false);
+                controller.moveSalesItemByQuantity(returnReceipts);
 
         }
-        return result;
+        return returnReceipts;
     }
 
         boolean returnWholeReceipt=false;
@@ -330,16 +333,20 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
     public Object moveReturnedReceiptToCurrentReceipt(Object proxy, Object[] args, Object ret, StackTraceElement caller)
             throws BreakExecutionException {
         // logger.info("22222222");
-        ReceiptEntity result = (ReceiptEntity) ret;
+        ReceiptEntity targetReceipt = (ReceiptEntity) ret;
         if (args.length == 8)
             // if (this.getPluginConfig().getAdvreturn()) 
             {
-                ReceiptEntity receiptWithAdjustmentItems = (ReceiptEntity) args[1];
-                ReturnController controller=new ReturnController(this,((ReturnReceiptPosService)proxy).getDbSession());
-                controller.moveReturnedReceiptToCurrentReceipt(receiptWithAdjustmentItems, result,returnWholeReceipt,totalReminingAmount);
+                ReceiptEntity sourceReceipt = (ReceiptEntity) args[1];
+                ReturnController controller=new ReturnController(this,((ReturnReceiptPosService)proxy).getDbSession(),sourceReceipt,targetReceipt,false);
+
+                // targetReceipt = returnReciept.getIndividualItemsReceipt();
+                // sourceReceipt = returnReciept.getSourceReceipt();
+
+                controller.moveReturnedReceiptToCurrentReceipt(sourceReceipt, targetReceipt,returnWholeReceipt,totalReminingAmount);
             }
         returnWholeReceipt=false;
-        return result;
+        return targetReceipt;
     }
 
     // @PluginAt(pluginClass = AccountCouponPosService.class, method = "addCoupon", where = PluginAt.POSITION.BEFORE)

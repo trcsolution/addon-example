@@ -15,11 +15,11 @@ public class ReturnController {
     private ReturnService  trcReturnService;
     private CDBSession dbSession; 
     private org.slf4j.Logger logger;
-    public ReturnController(TrcPromoAddon addon,CDBSession dbSession)
+    public ReturnController(TrcPromoAddon addon,CDBSession dbSession,ReceiptEntity sourcereceipt,ReceiptEntity targetReceipt,Boolean isStartReturn)
     {
         logger = LoggerFactory.getLogger(ReturnController.class);
         this.dbSession=dbSession;
-        this.trcReturnService=new ReturnService(addon,dbSession);
+        this.trcReturnService=new ReturnService(addon,dbSession,sourcereceipt,targetReceipt,isStartReturn);
 
     }
 

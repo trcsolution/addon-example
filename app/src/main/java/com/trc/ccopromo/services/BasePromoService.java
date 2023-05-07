@@ -53,10 +53,16 @@ public class BasePromoService {
         && salesItem.getQuantity().compareTo(BigDecimal.ZERO)>0;
         // && salesItem.getDiscountElements().isEmpty()  
     }
+
     public Stream<SalesItemEntity> getSalesItems(ReceiptEntity receipt)
     {
         return receipt.getSalesItems().stream().filter(b-> IsDiscountableItem(b) );
     }
+    public BigDecimal GetLineTotal(SalesItemEntity entry,Boolean includeDiscount)
+        {
+            return includeDiscount?entry.getUnitGrossAmount().multiply(entry.getQuantity()).subtract(entry.getDiscountAmount()).setScale(2,RoundingMode.HALF_UP)
+                :entry.getUnitGrossAmount().multiply(entry.getQuantity()).setScale(2,RoundingMode.HALF_UP);
+        }
 
     // public Stream SalesItemEntity
 
@@ -89,8 +95,7 @@ public class BasePromoService {
                     Misc.ClearPromo(salesItem,true);
                     if(salesItem.getDiscountElements().isEmpty() )
                     //  if(_addon.transactionState.getDiscountsource(salesItem.getKey())!=DiscountSource.Manualy)
-                    
-                        salesItem.setPaymentGrossAmountWithoutReceiptDiscount(salesItem.getQuantity().multiply(salesItem.getUnitGrossAmount()).setScale(2,RoundingMode.HALF_UP));
+                        salesItem.setPaymentGrossAmountWithoutReceiptDiscount(GetLineTotal(salesItem, false).setScale(2,RoundingMode.HALF_UP));
                         SetLineDiscount(salesItem,BigDecimal.ZERO);
                 });
     }
@@ -101,21 +106,26 @@ public class BasePromoService {
                     {
                         //promoResp.itemDiscounts.
                         List<String> items=promoResp.itemDiscounts.stream().filter(b->b.promoId==a.intValue()).map(b->b.itemCode).collect(Collectors.toList());
-                        ApplyPromoDiscount(receipt,items,a,promoDiscounts.get(a),headerDiscountPercent);
+                        ApplyPromoDiscount(receipt,items,a,BigDecimal.valueOf(promoDiscounts.get(a)),headerDiscountPercent);
                     });
         }
-        protected void SetItemAsInitiallyPromo(SalesItemEntity salesItem,Boolean isPromoItem)
+        protected void setInitiallyPromo(SalesItemEntity salesItem,String PromoId)
         {
-            Misc.setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.IS_PROMOITEM,isPromoItem.toString());
+            Misc.setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.IS_PROMOITEM,PromoId);
         }
-        protected Boolean IsItemInitiallyPromo(SalesItemEntity salesItem)
+        protected String getInitiallyPromo(SalesItemEntity salesItem)
         {
-            String value=Misc.getAdditionalField(salesItem,com.trc.ccopromo.models.Constants.IS_PROMOITEM);
-            if(value==null)
-                return false;
-                else
-                return Boolean.parseBoolean(value);
+            var rslt=Misc.getAdditionalField(salesItem,com.trc.ccopromo.models.Constants.IS_PROMOITEM);
+            return rslt==null?"":rslt;
         }
+        // protected Boolean IsItemInitiallyPromo(SalesItemEntity salesItem)
+        // {
+        //     String value=Misc.getAdditionalField(salesItem,com.trc.ccopromo.models.Constants.IS_PROMOITEM);
+        //     if(value==null)
+        //         return false;
+        //         else
+        //         return Boolean.parseBoolean(value);
+        // }
         
 
         public boolean HasCoupon(SalesItemEntity salesItem)
@@ -144,24 +154,26 @@ public class BasePromoService {
         {
             Misc.setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.PROMO_ID,PromoId);
         }
-        protected void ApplyPromoDiscount(ReceiptEntity receipt,List<String> items,int PromoId,Double _discount,BigDecimal headerDiscountPercent) {
+        protected void ApplyPromoDiscount(ReceiptEntity receipt,List<String> items,int PromoId,BigDecimal _discount,BigDecimal headerDiscountPercent) {
         
             var totalAmount=receipt.getSalesItems().stream().filter(a->this.IsDiscountableItem(a) && items.contains(a.getId()))
-                .mapToDouble(a->a.getUnitGrossAmount().multiply(a.getQuantity())
-                .doubleValue()).sum();
+                .collect(Collectors.reducing(BigDecimal.ZERO,x->GetLineTotal(x, false),BigDecimal::add));
+
+                // .mapToDouble(a->a.getUnitGrossAmount().multiply(a.getQuantity())
+                // .doubleValue()).sum();
                 
             var customer=receipt.getBusinessPartner();
             final BigDecimal customerDiscount=(customer==null?BigDecimal.ZERO:customer.getDiscountPercentage()).add(headerDiscountPercent);
 
-            final Double discount=_discount;
+            final BigDecimal discount=_discount;
             var salesItems=receipt.getSalesItems().stream().filter(a->this.IsDiscountableItem(a) && items.contains(a.getId()));
             salesItems.forEach(salesItem->
             {
-                BigDecimal tineTotal=salesItem.getUnitGrossAmount().multiply(salesItem.getQuantity());
-    
-                var k=tineTotal.doubleValue()/totalAmount;
+                BigDecimal tineTotal=GetLineTotal(salesItem, false);
+                BigDecimal k=tineTotal.divide(totalAmount);
+                 
                 salesItem.setPaymentGrossAmount(tineTotal);
-                var linediscount=BigDecimal.valueOf(k*discount);
+                var linediscount=k.multiply(discount);
                 if(customerDiscount.compareTo(BigDecimal.ZERO)>0)
                 {
                     linediscount=linediscount.add(
