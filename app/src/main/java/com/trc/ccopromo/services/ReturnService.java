@@ -42,7 +42,7 @@ public class ReturnService extends BasePromoService {
         private ReceiptEntity sourceReceipt;
         // private ReceiptEntity actualOriginalReceipt;
         static Map<String, BigDecimal> m_spent;
-        static Map<String, String> m_itemsToPromo;
+        //static Map<String, String> m_itemsToPromo;
 
         private Map<String, BigDecimal> getPromoSpend(ReceiptEntity receipt)
         {
@@ -64,7 +64,7 @@ public class ReturnService extends BasePromoService {
                 if(PromoId!=null && !PromoId.isBlank())
                 {
                     MarkAsPromo(item,PromoId);
-                    setInitiallyPromo(item,PromoId);
+                   // setInitiallyPromo(item,PromoId);
                 }
 
                // Misc.setAdditionalField(item,com.trc.ccopromo.models.Constants.PROMO_ID,PromoId);
@@ -73,7 +73,7 @@ public class ReturnService extends BasePromoService {
         public void InitReturn(ReceiptEntity actualOriginalReceipt,ReceiptEntity sourceReceipt)
         {
             m_spent=getPromoSpend(sourceReceipt);
-            m_itemsToPromo=getSalesItems(sourceReceipt).filter(a->Misc.HasPromo(a)).collect(Collectors.toMap(a->a.getId(),a->getPromoId(a)));
+            // m_itemsToPromo=getSalesItems(sourceReceipt).filter(a->Misc.HasPromo(a)).collect(Collectors.toMap(a->a.getId(),a->getPromoId(a)));
         }
 
         List<com.trc.ccopromo.models.storedpromo.StoredPromo> getPromotionsFromAdditionalItms(ReceiptEntity receipt)
@@ -139,6 +139,21 @@ public class ReturnService extends BasePromoService {
             
                 
             var promotions=getPromotionsFromAdditionalItms(actualOriginalReceipt);
+            if(isStartReturn)
+                getSalesItems(sourceReceipt).forEach(item->
+                {
+                    promotions.forEach(promo->{
+                        if(promo.products.contains(item.getId()))
+                        {
+                            setInitiallyPromo(item,String.valueOf(promo.promoId));
+                        }
+                    });
+                    
+                }
+                );
+                
+
+
             //calculate promo discounts
             var reminingDescounts=getTransactionPromoDiscounts(sourceReceipt,promotions);
             //Apply remining discount to the left side
@@ -171,12 +186,8 @@ public class ReturnService extends BasePromoService {
                  var salesItem=targetReceipt.getSalesItems().get(i);
                  if(IsDiscountableItem(salesItem))
                  {
-                    String _promoId=m_itemsToPromo.get(salesItem.getId());
-                    if(_promoId==null)
-                        continue;
-                      if(_promoId.isBlank())
-                        continue;
-                    if(_promoId.equals(promoId))
+                    
+                    if(promotions.stream().anyMatch( a->String.valueOf(a.promoId).equals(promoId) && a.products.contains(salesItem.getId()) ))
                     {
                         Misc.ClearPromo(salesItem, true);
                         salesItem.setGrossAmount(salesItem.getQuantity().multiply(salesItem.getUnitGrossAmount()));

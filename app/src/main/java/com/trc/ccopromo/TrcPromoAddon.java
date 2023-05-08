@@ -110,7 +110,7 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
 
     @Override
     public String getVersion() {
-        return "2.4.2";
+        return "2.4.3";
     } 
     @Override
     public boolean persistPropertiesToDB() {
