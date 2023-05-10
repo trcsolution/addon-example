@@ -50,9 +50,9 @@ public class SalesController {
     public void onSalesItemUpdated(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem)//, java.math.BigDecimal quantity 
     {
 
-        if(IdDISCOUNT_SOURCEManual)
+        if(IsDISCOUNT_SOURCEManual)
         {
-            IdDISCOUNT_SOURCEManual=false;
+            IsDISCOUNT_SOURCEManual=false;
             salesItem.setDiscountAmount(manualDIscountAmount);
             var item=receipt.getSalesItems().stream().filter(a->a.getKey()==salesItem.getKey()).findFirst().get();
             item.setDiscountAmount(manualDIscountAmount);
@@ -66,6 +66,9 @@ public class SalesController {
         }
         else
         {
+            
+            trcPromoService.MarkItemAsManualDiscounted(salesItem, false);
+
             this.trcPromoService.Calculate(receipt);
             // receipt.getAdditionalFields()
             // new ReceiptManager(dbSession).update(receipt);
@@ -77,18 +80,21 @@ public class SalesController {
         this.trcPromoService.Calculate(receipt);
 
     }
-    static boolean IdDISCOUNT_SOURCEManual =false;
+    static boolean IsDISCOUNT_SOURCEManual =false;
     static BigDecimal manualDIscountAmount;
     public void onManuallyUpdateItemDiscount(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem) {
-        IdDISCOUNT_SOURCEManual=true;
+        IsDISCOUNT_SOURCEManual=true;
         manualDIscountAmount=salesItem.getDiscountAmount();
     }
 
     public void removeSalesItemNote(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem)//, java.math.BigDecimal quantity
     {
+        IsDISCOUNT_SOURCEManual=false;
         if(salesItem.getAdditionalField(com.trc.ccopromo.models.Constants.DISCOUNT_SOURCE)!=null)
         {
             trcPromoService.MarkItemAsManualDiscounted(salesItem,false);
+            this.trcPromoService.SetLineDiscount(salesItem,BigDecimal.ZERO);
+            salesItem.setDiscountManuallyChanged(false);
             this.trcPromoService.Calculate(receipt);
             var calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,this.dbSession);
             calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);

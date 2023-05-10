@@ -170,7 +170,7 @@ public class BasePromoService {
             salesItems.forEach(salesItem->
             {
                 BigDecimal tineTotal=GetLineTotal(salesItem, false);
-                BigDecimal k=tineTotal.divide(totalAmount);
+                BigDecimal k=BigDecimal.valueOf(tineTotal.doubleValue()/totalAmount.doubleValue());
                  
                 salesItem.setPaymentGrossAmount(tineTotal);
                 var linediscount=k.multiply(discount);

@@ -85,6 +85,7 @@ public class SalesService extends BasePromoService {
     {
         this.Calculate(receipt);
         calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
+        receiptManager.update(receipt);
     }
     public void onSalesItemAddedToReceipt(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, java.util.List<com.sap.scco.ap.pos.entity.SalesItemEntity> salesItems, java.math.BigDecimal quantity)
     {
