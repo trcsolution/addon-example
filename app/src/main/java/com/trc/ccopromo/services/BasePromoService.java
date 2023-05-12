@@ -163,7 +163,9 @@ public class BasePromoService {
                 // .doubleValue()).sum();
                 
             var customer=receipt.getBusinessPartner();
-            final BigDecimal customerDiscount=(customer==null?BigDecimal.ZERO:customer.getDiscountPercentage()).add(headerDiscountPercent);
+            final BigDecimal customerDiscount=(customer==null?BigDecimal.ZERO:customer.getDiscountPercentage());
+
+            //final BigDecimal customerDiscount=(customer==null?BigDecimal.ZERO:customer.getDiscountPercentage()).add(headerDiscountPercent);
 
             final BigDecimal discount=_discount;
             var salesItems=receipt.getSalesItems().stream().filter(a->this.IsDiscountableItem(a) && items.contains(a.getId()));
@@ -180,6 +182,13 @@ public class BasePromoService {
                         tineTotal.subtract(linediscount).multiply(customerDiscount).divide(BigDecimal.valueOf(100))
                     );
                 }
+                if(headerDiscountPercent.compareTo(BigDecimal.ZERO)>0)
+                {
+                    linediscount=linediscount.add(
+                        tineTotal.subtract(linediscount).multiply(headerDiscountPercent).divide(BigDecimal.valueOf(100))
+                    );
+                }
+
                 if(!IsManualDiscounted(salesItem) && !HasCoupon(salesItem))
                 {
                     salesItem.setPaymentGrossAmountWithoutReceiptDiscount(tineTotal.subtract(linediscount));

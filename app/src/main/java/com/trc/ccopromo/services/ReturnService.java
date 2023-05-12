@@ -59,7 +59,7 @@ public class ReturnService extends BasePromoService {
         {
             getSalesItems(sourceReceipt).forEach(item->
             {
-                var originalItem=actualOriginalReceipt.getSalesItems().stream().filter(a->a.getKey()==item.getKey()).findFirst().get();
+                var originalItem=actualOriginalReceipt.getSalesItems().stream().filter(a->a.getKey().compareTo(item.getKey())==0).findFirst().get();
                 var PromoId=getPromoId(originalItem);
                 if(PromoId!=null && !PromoId.isBlank())
                 {
@@ -135,6 +135,8 @@ public class ReturnService extends BasePromoService {
             //Get Promotions used for Original transaction
             if(isStartReturn)
               CopyPromotions(actualOriginalReceipt,sourceReceipt);
+                else
+              CheckModifications(sourceReceipt);
             BigDecimal headerDiscountPercent=getHeaderDiscountPercent(sourceReceipt);
             
                 
@@ -148,9 +150,10 @@ public class ReturnService extends BasePromoService {
                             setInitiallyPromo(item,String.valueOf(promo.promoId));
                         }
                     });
-                    
                 }
                 );
+            
+            
                 
 
 
@@ -162,10 +165,23 @@ public class ReturnService extends BasePromoService {
 
             //Apply System Discounts to the NonDiscounted Items
             getSalesItems(sourceReceipt).filter(a->!getInitiallyPromo(a).isBlank() && getPromoId(a)==null).forEach(salesItem->{
-                var customer=sourceReceipt.getBusinessPartner();
-                final BigDecimal customerDiscount=(customer==null?BigDecimal.ZERO:customer.getDiscountPercentage()).add(headerDiscountPercent);
+
                 BigDecimal tineTotal=GetLineTotal(salesItem, false);
-                BigDecimal linediscount=tineTotal.multiply(customerDiscount).divide(BigDecimal.valueOf(100));
+                BigDecimal linediscount=BigDecimal.ZERO;
+
+                var customer=sourceReceipt.getBusinessPartner();
+                final BigDecimal customerDiscount=customer==null?BigDecimal.ZERO:customer.getDiscountPercentage();
+                // .add(headerDiscountPercent);
+                if(headerDiscountPercent.compareTo(BigDecimal.ZERO)!=0)
+                {
+                    linediscount=tineTotal.multiply(customerDiscount).divide(BigDecimal.valueOf(100));
+
+                }
+
+                if(headerDiscountPercent.compareTo(BigDecimal.ZERO)!=0)
+                {
+                    linediscount=linediscount.add(tineTotal.subtract(linediscount).multiply(headerDiscountPercent).divide(BigDecimal.valueOf(100)));
+                }
                 salesItem.setPaymentGrossAmountWithoutReceiptDiscount(tineTotal.subtract(linediscount));
                 SetLineDiscount(salesItem,linediscount);
                 salesItem.setUnitPriceChanged(true);
@@ -221,40 +237,66 @@ public class ReturnService extends BasePromoService {
             //  var promoDiscount=new BigDecimal(reminingDescounts.discount);
         }
 
+        private void CheckModifications(ReceiptEntity sourceReceipt) {
+            getSalesItems(sourceReceipt).forEach(item->
+            {
+                if(item.getStatus().compareTo("5")==0 && getInitiallyPromo(item).isBlank())
+                {
+                    var _originalItem=getSalesItems(sourceReceipt).filter(a->a.getId().compareTo(item.getId())==0 && !getInitiallyPromo(a).isBlank()).findFirst();
+                    if(!_originalItem.isPresent())
+                        _originalItem=sourceReceipt.getSalesItems().stream().filter(a->
+                        {
+
+                            return a.getId().compareTo(item.getId())==0 && !getInitiallyPromo(a).isBlank();
+                        }
+                        ).findFirst();
+                    if(_originalItem.isPresent())
+                    {
+                        var originalItem=_originalItem.get();
+                        setInitiallyPromo(item,getInitiallyPromo(originalItem));
+                    }
+                }
+            });
+        }
+
+
+
+
         public void moveReturnedReceiptToCurrentReceipt(ReceiptEntity sourcereceipt,ReceiptEntity targetReceipt,boolean isWholeReceipt,BigDecimal totalReminingAmount)
         {
             int i=0;
             if(isWholeReceipt)
             {
-                        // var originalReceipt=transactionlogic.LoadReceipt(TransactionId);
                 
-                            for (SalesItemEntity entry : sourcereceipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3")).collect(Collectors.toList())) {
-                                var targetEntry=targetReceipt.getSalesItems().get(i++);
-                            if(!Misc.HasPromo(targetEntry))
-                                continue;
-                            targetEntry.setReferenceSalesItem(null);
-                            targetEntry.setDiscountAmount(BigDecimal.ZERO);
-                            targetEntry.setUnitGrossAmount(entry.getGrossAmount().subtract(entry.getDiscountAmount()) .divide(entry.getQuantity()));
-            
-                        }
-                        if(sourcereceipt.getDiscountAmount().compareTo(BigDecimal.ZERO)>0)
-                        {
-                            //totalReminingAmount
-                            var _total=BigDecimal.valueOf(sourcereceipt.getSalesItems().stream().mapToDouble(a->
-                            a.getUnitGrossAmount()
-                            .multiply(a.getQuantity())
-                            .subtract(a.getDiscountAmount())
-                            .doubleValue()
-                            ).sum());
+                for (SalesItemEntity entry : sourcereceipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3")).collect(Collectors.toList())) 
+                {
+                    var targetEntry=targetReceipt.getSalesItems().get(i++);
+                    if(!Misc.HasPromo(targetEntry))
+                        continue;
+                    targetEntry.setReferenceSalesItem(null);
+                     targetEntry.setUnitGrossAmount(entry.getUnitGrossAmount());
+                     targetEntry.setDiscountAmount(entry.getDiscountAmount().negate());
+                    
 
-                            // targetReceipt.setDiscountAmount(sourcereceipt.getTotalGrossAmount().subtract(totalReminingAmount).negate());
-                            targetReceipt.setDiscountAmount(_total.subtract(totalReminingAmount).negate());
+                }
+                if(sourcereceipt.getDiscountAmount().compareTo(BigDecimal.ZERO)>0)
+                {
+                    //totalReminingAmount
+                    var _total=BigDecimal.valueOf(sourcereceipt.getSalesItems().stream().mapToDouble(a->
+                    a.getUnitGrossAmount()
+                    .multiply(a.getQuantity())
+                    .subtract(a.getDiscountAmount())
+                    .doubleValue()
+                    ).sum());
 
-                            // targetReceipt.setDiscountAmount(sourcereceipt.getDiscountAmount().negate());
+                    // targetReceipt.setDiscountAmount(sourcereceipt.getTotalGrossAmount().subtract(totalReminingAmount).negate());
+                    targetReceipt.setDiscountAmount(_total.subtract(totalReminingAmount).negate());
 
-                            targetReceipt.setPercentageDiscount(false);
-                            
-                        }
+                    // targetReceipt.setDiscountAmount(sourcereceipt.getDiscountAmount().negate());
+
+                    targetReceipt.setPercentageDiscount(false);
+                    
+                }
                         
 
             }
