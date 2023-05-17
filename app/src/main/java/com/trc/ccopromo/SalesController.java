@@ -77,7 +77,8 @@ public class SalesController {
         }
     }
     public void onSalesItemVoided(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem) {
-        this.trcPromoService.Calculate(receipt);
+        this.trcPromoService.onSalesItemVoided(receipt,salesItem);
+        
 
     }
     static boolean IsDISCOUNT_SOURCEManual =false;

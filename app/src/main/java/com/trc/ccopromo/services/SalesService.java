@@ -94,7 +94,16 @@ public class SalesService extends BasePromoService {
         
     }
 
-        
+    public void onSalesItemVoided(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem)  {
+        Misc.ClearPromo(salesItem, true);
+        SetLineDiscount(salesItem, BigDecimal.ZERO);
+
+        Calculate(receipt);
+        var calculationPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(CalculationPosService.class,this.dbSession);
+            calculationPosService.calculate(receipt, EntityActions.CHECK_CONS);
+        receiptManager.update(receipt);
+
+    }    
     public void Calculate(ReceiptEntity receipt)  {
         ResetSalesItems(receipt);
         if(receipt.getSalesItems().stream().anyMatch(salesItem->IsDiscountableItem(salesItem)
