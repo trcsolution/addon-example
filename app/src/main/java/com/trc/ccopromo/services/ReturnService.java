@@ -335,7 +335,10 @@ public class ReturnService extends BasePromoService {
                 for (SalesItemEntity entry : sourcereceipt.getSalesItems().stream().filter(a->!a.getStatus().equals("3")).collect(Collectors.toList())) 
                 {
                     var targetEntry=targetReceipt.getSalesItems().get(i++);
-                    if(!Misc.HasPromo(targetEntry))
+                    var promoid=getInitiallyPromo(entry);
+                    if(promoid.isEmpty())
+                    //logger.info(promoid);
+                    //if(!Misc.HasPromo(targetEntry))
                         continue;
                     targetEntry.setReferenceSalesItem(null);
                      targetEntry.setUnitGrossAmount(entry.getUnitGrossAmount());
