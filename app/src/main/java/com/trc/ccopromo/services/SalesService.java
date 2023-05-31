@@ -5,19 +5,26 @@ import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sap.scco.ap.pos.dao.CDBSession;
 import com.sap.scco.ap.pos.dao.CDBSessionFactory;
 import com.sap.scco.ap.pos.dao.ReceiptManager;
+import com.sap.scco.ap.pos.dto.AdditionalFieldDTO;
+import com.sap.scco.ap.pos.dto.ReceiptPrintDTO;
+import com.sap.scco.ap.pos.dto.SalesItemDTO;
 import com.sap.scco.ap.pos.entity.AdditionalFieldEntity;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
 import com.sap.scco.ap.pos.entity.SalesItemEntity;
 import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
 import com.sap.scco.ap.pos.entity.BusinessPartnerEntity;
+import com.sap.scco.ap.pos.entity.PrintTemplateEntity;
 import com.sap.scco.ap.pos.exception.InconsistentReceiptStateException;
 import com.sap.scco.ap.pos.service.CalculationPosService;
 import com.sap.scco.ap.pos.service.ReceiptPosService;
@@ -29,7 +36,11 @@ import com.sap.scco.util.CConst;
 // import com.trc.ccopromo.TransactionTools;
 import com.trc.ccopromo.TrcPromoAddon;
 import com.trc.ccopromo.models.PromoResponse;
+import com.trc.ccopromo.models.receipt.Promo;
+import com.trc.ccopromo.models.receipt.PromoItem;
+import com.trc.ccopromo.models.storedpromo.StoredPromo;
 import com.trc.ccopromo.models.transaction.post.PostTransactionRequest;
+import org.apache.commons.lang3.StringUtils;
 
 public class SalesService extends BasePromoService {
 
@@ -204,6 +215,100 @@ public class SalesService extends BasePromoService {
         //     e.printStackTrace();
         // }
         // request.PostTransaction(receipt);
+    }
+
+
+
+    public static int getPromoId(SalesItemDTO entry)
+    {
+        
+        if(entry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID)==null)
+                return Integer.valueOf(0);
+            else
+            if(entry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID).getValue().length()==0)
+                return Integer.valueOf(0);
+            else
+                return Integer.parseInt(entry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID).getValue());
+    }
+
+    public void OnPrintReceipt(ReceiptPrintDTO receiptprint,PrintTemplateEntity template,Map<String, Object> rootMap) {
+        if(receiptprint.getAdditionalFields()!=null)
+        {
+            var mapper = new ObjectMapper();
+            List<com.trc.ccopromo.models.receipt.Promo> promos = new ArrayList<>();
+            promos.addAll(
+            receiptprint.getAdditionalFields().stream().filter(a->StringUtils.isNotEmpty(a.getValue()) 
+            && a.getFieldName().startsWith("Promo:")).map(AdditionalFieldDTO::getValue).
+            map(a->
+            {
+                try {
+                    var p=mapper.readValue(a,StoredPromo.class);
+                    if(p==null)
+                     return null;
+                     else
+                     {
+                        var prods=p.products.stream().map(itemcode->{
+                            var anyItem=receiptprint.getSalesItems().stream().filter(b->b.getId().compareTo(itemcode)==0 && getPromoId(b)==p.promoId).findAny();
+                            if(anyItem.isEmpty())
+                                anyItem=receiptprint.getSalesItems().stream().filter(b->b.getId().compareTo(itemcode)==0).findAny();
+                            var totalAmountWithoutReceiptDiscount=receiptprint.getSalesItems().stream().filter(b->b.getId().compareTo(itemcode)==0 )//&& getPromoId(b)==p.promoId
+                                .collect(Collectors.reducing(BigDecimal.ZERO,x->BigDecimal.valueOf(x.getPaymentGrossAmountWithoutReceiptDiscount()),BigDecimal::add));
+                            var totalPaymentGrossAmount=receiptprint.getSalesItems().stream().filter(b->b.getId().compareTo(itemcode)==0 )//&& getPromoId(b)==p.promoId
+                                .collect(Collectors.reducing(BigDecimal.ZERO,x->BigDecimal.valueOf(x.getGrossAmount()),BigDecimal::add));
+                            var totalQty=receiptprint.getSalesItems().stream().filter(b->b.getId().compareTo(itemcode)==0 )//&& getPromoId(b)==p.promoId
+                                .collect(Collectors.reducing(BigDecimal.ZERO,x->BigDecimal.valueOf(x.getQuantity()),BigDecimal::add));
+                            var discountAmount=totalPaymentGrossAmount.subtract(totalAmountWithoutReceiptDiscount);
+                            return new com.trc.ccopromo.models.receipt.PromoItem(itemcode, anyItem.get().getDescription(), totalPaymentGrossAmount.doubleValue(),discountAmount.doubleValue(), totalQty.doubleValue());
+                        }).collect(Collectors.toList());
+                        
+                       ArrayList<PromoItem> products=new ArrayList<PromoItem>();
+                       products.addAll(prods);
+                       
+                       return new com.trc.ccopromo.models.receipt.Promo(p.promoId,p.promoName,
+                       products.stream().mapToDouble(a1->a1.getDiscount()).sum()
+                       ,products);
+                     }
+
+                } catch (JsonMappingException e) {
+                    return null;
+                    // e.printStackTrace();
+                } catch (JsonProcessingException e) {
+                    // TODO Auto-generated catch block
+                    return null;
+                }
+            }
+            )
+            .filter(a->a!=null)
+            .collect(Collectors.toList())
+            );
+            for (SalesItemDTO saleitem : receiptprint.getSalesItems()) {
+                var promoid=saleitem.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID);
+                if(promoid!=null)
+                {
+                    var promoId=promoid.getValue();
+                    if(promoId!=null)
+                      if(!promoId.isEmpty())
+                      {
+                          var p=promos.stream().filter(a->promoId.compareTo(String.valueOf(a.getPromoId()))==0).findFirst();
+                          if(!p.isEmpty())
+                          {
+                            saleitem.addAdditionalField(new AdditionalFieldDTO("promoname", "trcpromo", p.get().getPromoName()));
+                          }
+                      }
+                }
+                
+            }
+            rootMap.put("trcPromos", promos);
+            
+            
+            // for (AdditionalFieldDTO addField : receiptprint.getAdditionalFields()) {
+            //     if(addField.getFieldName().startsWith("Promo:")){
+            //         var promo=mapper.readValue(addField.getValue(),StoredPromo.class);
+            //         promos.add(0, null);
+
+            //     }
+            // }
+        }
     }
 
 

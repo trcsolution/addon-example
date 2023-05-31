@@ -25,6 +25,7 @@ import com.sap.scco.ap.pos.dao.CDBSessionFactory;
 import com.sap.scco.ap.pos.dao.ReceiptManager;
 import com.sap.scco.ap.pos.dao.ReceiptPosDAO;
 import com.sap.scco.ap.pos.dao.impl.ReceiptPosDAOImpl;
+import com.sap.scco.ap.pos.dto.ReceiptPrintDTO;
 import com.sap.scco.ap.pos.entity.SalesItemEntity;
 import com.sap.scco.ap.pos.entity.SalesItemNoteEntity;
 import com.sap.scco.ap.pos.service.SalesItemNotePosService;
@@ -35,6 +36,7 @@ import com.sap.scco.ap.pos.i14y.util.context.I14YContext;
 import com.sap.scco.ap.pos.job.PluginJob;
 import com.sap.scco.ap.pos.entity.BusinessPartnerEntity;
 import com.sap.scco.ap.pos.entity.MonitoringEntry;
+import com.sap.scco.ap.pos.entity.PrintTemplateEntity;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
 import com.sap.scco.ap.pos.service.CalculationPosService;
 import com.sap.scco.ap.pos.service.ReceiptChangeNotifierPosService;
@@ -110,7 +112,7 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
 
     @Override
     public String getVersion() {
-        return "2.4.13";
+        return "2.4.16";
     } 
     @Override
     public boolean persistPropertiesToDB() {
@@ -228,6 +230,7 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
 
         
     }
+    
 
     
 
@@ -347,6 +350,11 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
             }
         returnWholeReceipt=false;
         return targetReceipt;
+    }
+
+    @ListenToExit(exitName = "BasePrintJobBuilder.mergeTemplateWithData")
+    public void mergeTemplateWithData(Object caller, Object[] args) {
+        new SalesController(this,(CDBSession)args[3]).mergeTemplateWithData((ReceiptPrintDTO)args[2],(PrintTemplateEntity)args[1],(Map<String, Object>) args[0]);
     }
 
     // @PluginAt(pluginClass = AccountCouponPosService.class, method = "addCoupon", where = PluginAt.POSITION.BEFORE)

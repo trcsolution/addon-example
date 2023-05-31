@@ -4,7 +4,7 @@
 		{
 			"label": "Build Promo",
 			"type": "shell",
-  			"command": "echo Hello",
+  			"command": "echo Compiled",
   			"dependsOrder": "sequence",
 			"group": {
 				"kind": "build",

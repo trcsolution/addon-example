@@ -2,12 +2,15 @@ package com.trc.ccopromo;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Map;
 
 import org.slf4j.LoggerFactory;
 
 import com.sap.scco.ap.pos.dao.CDBSession;
 import com.sap.scco.ap.pos.dao.ReceiptManager;
+import com.sap.scco.ap.pos.dto.ReceiptPrintDTO;
 import com.sap.scco.ap.pos.entity.BusinessPartnerEntity;
+import com.sap.scco.ap.pos.entity.PrintTemplateEntity;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
 import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
 import com.sap.scco.ap.pos.service.CalculationPosService;
@@ -44,12 +47,12 @@ public class SalesController {
     }
     public void onSalesItemAddedToReceipt(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, java.util.List<com.sap.scco.ap.pos.entity.SalesItemEntity> salesItems, java.math.BigDecimal quantity)
     {
-        this.trcPromoService.onSalesItemAddedToReceipt(receipt,salesItems,quantity);
+       this.trcPromoService.onSalesItemAddedToReceipt(receipt,salesItems,quantity);
         
     }
     public void onSalesItemUpdated(com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem)//, java.math.BigDecimal quantity 
-    {
-
+    {   
+        
         if(IsDISCOUNT_SOURCEManual)
         {
             IsDISCOUNT_SOURCEManual=false;
@@ -132,6 +135,10 @@ public class SalesController {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+    }
+    public void mergeTemplateWithData(ReceiptPrintDTO receiptprint,PrintTemplateEntity template,Map<String, Object> rootMap) {
+        this.trcPromoService.OnPrintReceipt(receiptprint, template, rootMap);
+        
     }
     
     
