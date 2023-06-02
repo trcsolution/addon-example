@@ -163,9 +163,24 @@ public class ReturnService extends BasePromoService {
             ResetSalesItems(sourceReceipt);
             ApplyPromoDiscountsToTransaction(reminingDescounts, sourceReceipt,headerDiscountPercent);
 
+            //set is promo item is GetItem(discounyed) or buy item (filter) - need for promotype Buy and Get 
+            getSalesItems(sourceReceipt).forEach(item->
+                {
+                    promotions.forEach(promo->{
+                        if(promo.products.contains(item.getId()))
+                         if(!getInitiallyPromo(item).isBlank())
+                        {
+                            if(!getIsDiscountedPromoItem(item))
+                                setIsDiscountedPromoItem(item,getPromoId(item)!=null);
+                        }
+                    });
+                }
+                );
+
             //Apply System Discounts to the NonDiscounted Items
             getSalesItems(sourceReceipt).filter(a->!getInitiallyPromo(a).isBlank() && getPromoId(a)==null).forEach(salesItem->{
 
+                
                 BigDecimal tineTotal=GetLineTotal(salesItem, false);
                 BigDecimal linediscount=BigDecimal.ZERO;
 
@@ -224,11 +239,15 @@ public class ReturnService extends BasePromoService {
                       IsDiscountableItem(targetSalesItem)
                         &&
                         promotions.stream().anyMatch( a->String.valueOf(a.promoId).equals(promoId) && a.products.contains(targetSalesItem.getId()) )    
-                 ).sorted((v1,v2)->{
+                 ).sorted((item1,item2)->
+                     Boolean.compare(getIsDiscountedPromoItem(item2),getIsDiscountedPromoItem(item1))
+                 ).
+                 sorted((v1,v2)->{
                 var v1Amount=BigDecimal.valueOf(getSalesItems(actualOriginalReceipt).filter(a->a.getId().compareTo(v1.getId())==0).mapToDouble(a->a.getPaymentGrossAmountWithoutReceiptDiscount().doubleValue()).sum());
                 var v2Amount=BigDecimal.valueOf(getSalesItems(actualOriginalReceipt).filter(a->a.getId().compareTo(v2.getId())==0).mapToDouble(a->a.getPaymentGrossAmountWithoutReceiptDiscount().doubleValue()).sum());
                     return v2Amount.compareTo(v1Amount);
                  }).collect(Collectors.toList());
+
                  for (SalesItemEntity item : sortedTargetItems) {
                     var salesItem=targetReceipt.getSalesItems().stream().filter(a->a.getKey().compareTo(item.getKey())==0).findFirst().get();
 
@@ -245,7 +264,6 @@ public class ReturnService extends BasePromoService {
                         }
                         else
                         {
-                            
                             linediscount=linetotal.subtract(amount);
                             amount=BigDecimal.ZERO;
                         }
@@ -254,47 +272,9 @@ public class ReturnService extends BasePromoService {
                                     Misc.setAdditionalField(salesItem, "TRC_Discount",linediscount.toString());
                                     SetLineDiscount(salesItem, linediscount);
                                 }
-                                
-
                     //logger.info(salesItem.getId());     
-
                  }
-                 
-
-
-                // for(int i=0;i<targetReceipt.getSalesItems().size();i++){
-                //  var salesItem=targetReceipt.getSalesItems().get(i);
-                //  if(IsDiscountableItem(salesItem))
-                //  {
-                    
-                //     if(promotions.stream().anyMatch( a->String.valueOf(a.promoId).equals(promoId) && a.products.contains(salesItem.getId()) ))
-                //     {
-                //         Misc.ClearPromo(salesItem, true);
-                //         salesItem.setGrossAmount(salesItem.getQuantity().multiply(salesItem.getUnitGrossAmount()));
-                //         salesItem.setPaymentGrossAmountWithoutReceiptDiscount(salesItem.getQuantity().multiply(salesItem.getUnitGrossAmount()));
-
-                //         var linetotal=GetLineTotal(salesItem, false);
-                //         BigDecimal linediscount=BigDecimal.ZERO;
-                //         if(linetotal.compareTo(amount)<0)
-                //         {   
-                //             linediscount=BigDecimal.ZERO;
-                //             amount=amount.subtract(linetotal);
-                //         }
-                //         else
-                //         {
-                            
-                //             linediscount=linetotal.subtract(amount);
-                //             amount=BigDecimal.ZERO;
-                //         }
-                //         if(linediscount.compareTo(BigDecimal.ZERO)>=0)
-                //                 {
-                //                     Misc.setAdditionalField(salesItem, "TRC_Discount",linediscount.toString());
-                //                     SetLineDiscount(salesItem, linediscount);
-                //                 }
-
-                //     }
-                //  }
-                // }
+                
              });
             calculationPosService.calculate(sourceReceipt, EntityActions.CHECK_CONS);
             calculationPosService.calculate(targetReceipt, EntityActions.CHECK_CONS);

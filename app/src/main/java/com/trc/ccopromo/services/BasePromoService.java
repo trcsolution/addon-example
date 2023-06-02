@@ -118,6 +118,19 @@ public class BasePromoService {
             var rslt=Misc.getAdditionalField(salesItem,com.trc.ccopromo.models.Constants.IS_PROMOITEM);
             return rslt==null?"":rslt;
         }
+
+        protected void setIsDiscountedPromoItem(SalesItemEntity salesItem,Boolean isDiscounted)
+        {
+            Misc.setAdditionalField(salesItem,com.trc.ccopromo.models.Constants.IS_DISCOUNTED,String.valueOf(isDiscounted));
+        }
+        protected Boolean getIsDiscountedPromoItem(SalesItemEntity salesItem)
+        {
+            var rslt=Misc.getAdditionalField(salesItem,com.trc.ccopromo.models.Constants.IS_DISCOUNTED);
+            return rslt==null?false:Boolean.valueOf(rslt);
+        }
+
+
+
         // protected Boolean IsItemInitiallyPromo(SalesItemEntity salesItem)
         // {
         //     String value=Misc.getAdditionalField(salesItem,com.trc.ccopromo.models.Constants.IS_PROMOITEM);
