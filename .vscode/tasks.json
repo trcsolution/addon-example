@@ -10,7 +10,7 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"dependsOn": ["Build Jar","copyJar1"]
+			"dependsOn": ["Build Jar","copyJarFile"]
 		  },
 		{
 			"type": "gradle",
@@ -33,7 +33,7 @@
 		{
 			
 			"type": "shell",
-			"label": "copyJar1",
+			"label": "copyJarFile",
 			"runOptions": {},
 			"command": "cp",
 			"options": {

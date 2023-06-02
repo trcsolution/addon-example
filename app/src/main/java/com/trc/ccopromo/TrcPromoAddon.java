@@ -109,6 +109,7 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
     public String getName() {
         return "TRC Promo";
     }
+    
 
     @Override
     public String getVersion() {
