@@ -383,18 +383,19 @@ public class ReturnService extends BasePromoService {
                             }
                             
                             if(Misc.HasPromo(targetEntry))
+                            // if(false)
                             {
                                 // Misc.ClearPromo(entry, true);
                                 Misc.ClearPromo(targetEntry, true);
-                                var grossAmount=targetEntry.getGrossAmount();
-                                var discount=targetEntry.getDiscountAmount();
-                                var Amount=grossAmount.subtract(discount);
-                                // targetEntry.getPaymentGrossAmountWithoutReceiptDiscount();
+                                        // var grossAmount=targetEntry.getGrossAmount();
+                                        // var discount=targetEntry.getDiscountAmount();
+                                        // var Amount=grossAmount.subtract(discount);
+                                        // // targetEntry.getPaymentGrossAmountWithoutReceiptDiscount();
 
-                                targetEntry.setReferenceSalesItem(null);
-                                targetEntry.setDiscountAmount(BigDecimal.ZERO);
-                                targetEntry.setUnitGrossAmount(Amount.divide(targetEntry.getQuantity().abs()));
-                                targetEntry.setUnitPriceChanged(true);
+                                        // targetEntry.setReferenceSalesItem(null);
+                                        // targetEntry.setDiscountAmount(BigDecimal.ZERO);
+                                        // targetEntry.setUnitGrossAmount(Amount.divide(targetEntry.getQuantity().abs()));
+                                        // targetEntry.setUnitPriceChanged(true);
 
                                 // targetEntry.setDiscountAmount(discount);
                                 // targetEntry.setPaymentGrossAmountWithoutReceiptDiscount(setPaymentGrossAmountWithoutReceiptDiscount);
