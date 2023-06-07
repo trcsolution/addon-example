@@ -357,11 +357,26 @@ public class ReturnService extends BasePromoService {
                         if(discountStr!=null)
                             if(discountStr.getValue()!=null)
                             {
+                                
                                 var discount=new BigDecimal(discountStr.getValue());
                                 targetEntry.setReferenceSalesItem(null);
                                 targetEntry.setDiscountAmount(BigDecimal.ZERO);
-                                targetEntry.setUnitGrossAmount(entry.getGrossAmount().subtract(discount).divide(entry.getQuantity().abs()));
+                                BigDecimal customerDiscount=BigDecimal.valueOf(1);
+                                if(targetReceipt.getBusinessPartner()!=null)
+                                 if(targetReceipt.getBusinessPartner().getDiscountPercentage().compareTo(BigDecimal.valueOf(0))>0 )
+                                        customerDiscount=BigDecimal.valueOf(1).subtract(targetReceipt.getBusinessPartner().getDiscountPercentage().divide(BigDecimal.valueOf(100)));
+
+                                targetEntry.setUnitGrossAmount(entry.getGrossAmount().subtract(discount).divide(entry.getQuantity().abs()).divide(customerDiscount));
                                 targetEntry.setUnitPriceChanged(true);
+                                targetEntry.setDiscountPurposeCode(com.trc.ccopromo.models.Constants.PROMO_DISCOUNT_CODE);
+            targetEntry.setDiscountManuallyChanged(true);
+            
+        //                         targetEntry.setDiscountManuallyChanged(true);customerDiscount
+        //   //                      targetEntry.setDiscountManuallyChanged(true);
+        
+        targetEntry.setMarkChanged(true);
+        targetEntry.setItemDiscountChanged(true);
+
                                 if(Misc.HasPromo(targetEntry))
                                     Misc.ClearPromo(targetEntry, true);
                                 continue;
@@ -371,12 +386,19 @@ public class ReturnService extends BasePromoService {
                             {
                                 // Misc.ClearPromo(entry, true);
                                 Misc.ClearPromo(targetEntry, true);
+                                var grossAmount=targetEntry.getGrossAmount();
+                                var discount=targetEntry.getDiscountAmount();
+                                var Amount=grossAmount.subtract(discount);
+                                // targetEntry.getPaymentGrossAmountWithoutReceiptDiscount();
+
                                 targetEntry.setReferenceSalesItem(null);
                                 targetEntry.setDiscountAmount(BigDecimal.ZERO);
-                                targetEntry.setUnitGrossAmount(entry.getGrossAmount().divide(entry.getQuantity().abs()));
+                                targetEntry.setUnitGrossAmount(Amount.divide(targetEntry.getQuantity().abs()));
                                 targetEntry.setUnitPriceChanged(true);
 
-                                // targetEntry.setGrossAmount(entry.getGrossAmount());
+                                // targetEntry.setDiscountAmount(discount);
+                                // targetEntry.setPaymentGrossAmountWithoutReceiptDiscount(setPaymentGrossAmountWithoutReceiptDiscount);
+                                //targetEntry.setGrossAmount(grossAmount);
                                 
                             }
                     }
