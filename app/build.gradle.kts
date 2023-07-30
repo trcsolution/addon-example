@@ -43,9 +43,9 @@ tasks.jar {
         attributes(
             "pluginName" to "trc",
             "cashdeskPOSPlugin" to "com.trc.ccopromo.TrcPromoAddon",
-            "cashDeskVersions" to "2.0 FP12, 2.0 FP13, n/a",
-            "version" to "2.13.4",
-            "pluginVersion" to "2.13.4"
+            "cashDeskVersions" to "2.0 FP12, 2.0 FP13, 2.0 FP14, 2.0 FP15, 2.0 FP16, n/a",
+            "version" to "2.13.5",
+            "pluginVersion" to "2.13.5"
         )
     }
         
