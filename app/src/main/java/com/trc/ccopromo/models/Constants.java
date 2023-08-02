@@ -17,5 +17,6 @@ public class Constants {
     public static String NONPROMO_PROMO_DISCOUNT_CODE="1000";
 
     public static String COUPON_DISCOUNT="COUPON";
+    public static String TRC_COUPONS="TRC_COUPONS";
     // public static String PROMO_NOTE="111";
 }

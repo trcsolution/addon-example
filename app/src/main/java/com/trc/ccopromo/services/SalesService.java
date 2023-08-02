@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sap.scco.ap.pos.dao.CDBSession;
@@ -35,6 +36,9 @@ import com.sap.scco.env.UIEventDispatcher;
 import com.sap.scco.util.CConst;
 // import com.trc.ccopromo.TransactionTools;
 import com.trc.ccopromo.TrcPromoAddon;
+import com.trc.ccopromo.models.Constants;
+import com.trc.ccopromo.models.Coupon;
+import com.trc.ccopromo.models.Coupons;
 import com.trc.ccopromo.models.PromoResponse;
 import com.trc.ccopromo.models.receipt.Promo;
 import com.trc.ccopromo.models.receipt.PromoItem;
@@ -130,6 +134,16 @@ public class SalesService extends BasePromoService {
                 {
                     ApplyPromoDiscountsToTransaction(promos,receipt,BigDecimal.ZERO);
                 }
+                //coupons
+                if(promos.coupons!=null)
+                    if(promos.coupons.size()>0)
+                {
+                    // Coupon
+                    ObjectMapper m = new ObjectMapper();
+                    Coupons coupons=new Coupons(promos.coupons);
+                    setTransactionAdditionalField(receipt,com.trc.ccopromo.models.Constants.TRC_COUPONS,m.writeValueAsString(coupons));
+                }
+
 
 
             } catch (IOException e) {
@@ -231,6 +245,17 @@ public class SalesService extends BasePromoService {
                 return Integer.parseInt(entry.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID).getValue());
     }
 
+    
+
+    public static String getTransactiontAdditionalField(ReceiptPrintDTO receipt,String fieldName)
+        {
+            AdditionalFieldDTO additionalField = receipt.getAdditionalField(fieldName);
+            if(additionalField==null)
+                return null;
+            return additionalField.getValue();
+        }
+
+
     public void OnPrintReceipt(ReceiptPrintDTO receiptprint,PrintTemplateEntity template,Map<String, Object> rootMap) {
         if(receiptprint.getAdditionalFields()!=null)
         {
@@ -281,6 +306,34 @@ public class SalesService extends BasePromoService {
             .filter(a->a!=null)
             .collect(Collectors.toList())
             );
+
+            
+            
+            String couponsField=getTransactiontAdditionalField(receiptprint,com.trc.ccopromo.models.Constants.TRC_COUPONS);
+            if(couponsField!=null)
+            {   
+                ObjectMapper m = new ObjectMapper();
+                // Coupons coupons=new Coupons(promos.coupons);
+                try {
+                    Coupons coupons= m.readValue(couponsField,Coupons.class);
+                    for (Coupon coupon : coupons.coupons) {
+                        logger.info(coupon.code);
+                        
+                    }
+                    
+
+                } catch (JsonProcessingException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                // setTransactionAdditionalField(receipt,com.trc.ccopromo.models.Constants.TRC_COUPONS,m.writeValueAsString(coupons));
+
+                // coupons.si
+            }
+            
+            
+
+
             for (SalesItemDTO saleitem : receiptprint.getSalesItems()) {
                 var promoid=saleitem.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID);
                 if(promoid!=null)

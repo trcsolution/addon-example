@@ -1,4 +1,5 @@
 package com.trc.ccopromo.models;
+
 // import java.util.*;
 
 
@@ -69,6 +70,7 @@ public class PromoResponse{
     public String transactionNumber;
     public String discount;
     public ArrayList<ItemDiscount> itemDiscounts;
+    public ArrayList<com.trc.ccopromo.models.Coupon> coupons;
 }
 
 
