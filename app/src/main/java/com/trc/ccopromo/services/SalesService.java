@@ -138,10 +138,17 @@ public class SalesService extends BasePromoService {
                 if(promos.coupons!=null)
                     if(promos.coupons.size()>0)
                 {
+                    for (Coupon coupon : promos.coupons) {
+                        coupon.salestransactionid=receipt.getId();
+                    }
+                    
                     // Coupon
                     ObjectMapper m = new ObjectMapper();
                     Coupons coupons=new Coupons(promos.coupons);
-                    setTransactionAdditionalField(receipt,com.trc.ccopromo.models.Constants.TRC_COUPONS,m.writeValueAsString(coupons));
+                    String sCoupons=m.writeValueAsString(coupons);
+                    receipt.setComment(sCoupons);
+
+                    setTransactionAdditionalField(receipt,com.trc.ccopromo.models.Constants.TRC_COUPONS,sCoupons);
                 }
 
 
@@ -201,7 +208,19 @@ public class SalesService extends BasePromoService {
                 ,a.getDiscountAmount().doubleValue()
                 ,a.getAdditionalField(com.trc.ccopromo.models.Constants.PROMO_ID)
             ),Collectors.toList()));
-        
+
+       
+        var sCoupons=getTransactionAdditionalField(receipt,com.trc.ccopromo.models.Constants.TRC_COUPONS);
+        if(sCoupons!=null)
+        {
+
+            var mapper = new ObjectMapper();
+            var coupons=mapper.readValue(sCoupons,Coupons.class);
+            requestObj.data.coupons=coupons.coupons;
+            
+        }
+
+        logger.info(sCoupons);
         var promos=webPromoService.PostTransaction(requestObj);
         var mapper = new ObjectMapper();
         for (int i = 0; i < promos.storedPromos.size(); i++) {
@@ -308,7 +327,7 @@ public class SalesService extends BasePromoService {
             );
 
             
-            
+            // receiptprint.getId()
             String couponsField=getTransactiontAdditionalField(receiptprint,com.trc.ccopromo.models.Constants.TRC_COUPONS);
             if(couponsField!=null)
             {   

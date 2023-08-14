@@ -3,6 +3,7 @@ package com.trc.ccopromo.models.transaction.post;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.trc.ccopromo.models.Coupon;
 
 
 public class Data{
@@ -13,4 +14,5 @@ public class Data{
     @JsonProperty("IsPosted") 
     public boolean isPosted;
     public List<Item> items;
+    public List<Coupon> coupons;
 }

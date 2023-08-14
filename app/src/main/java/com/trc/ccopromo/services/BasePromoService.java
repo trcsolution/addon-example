@@ -233,6 +233,15 @@ public class BasePromoService {
                 else
             additionalField2.setValue(value);
         }
+
+        public static String getTransactionAdditionalField(ReceiptEntity receipt, String key) {
+            AdditionalFieldEntity additionalField2 = receipt.getAdditionalField(key);
+            if (additionalField2 == null) {
+                    return null;
+            }
+            return additionalField2.getValue();
+            
+        }
         
     
 }
