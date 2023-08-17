@@ -15,4 +15,5 @@ public class Data{
     public boolean isPosted;
     public List<Item> items;
     public List<Coupon> coupons;
+    public List<Coupon> redeemed_coupons;
 }

@@ -2,6 +2,7 @@ package com.trc.ccopromo.services;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +39,9 @@ import com.sap.scco.util.CConst;
 import com.trc.ccopromo.TrcPromoAddon;
 import com.trc.ccopromo.models.Constants;
 import com.trc.ccopromo.models.Coupon;
+import com.trc.ccopromo.models.CouponRequest;
 import com.trc.ccopromo.models.Coupons;
+import com.trc.ccopromo.models.PromoRequest;
 import com.trc.ccopromo.models.PromoResponse;
 import com.trc.ccopromo.models.receipt.Promo;
 import com.trc.ccopromo.models.receipt.PromoItem;
@@ -57,7 +60,7 @@ public class SalesService extends BasePromoService {
     }
 
 
-    void CalculateCurrent() throws InconsistentReceiptStateException{
+    public void CalculateCurrent() throws InconsistentReceiptStateException{
         receiptPosService.getDbSession().getEM().clear();
         ReceiptPosService receiptService = this.receiptPosService;
         ReceiptEntity receipt = receiptService.findOrCreate(UserRegistry.INSTANCE.getCurrentUser(), null, false);
@@ -146,7 +149,7 @@ public class SalesService extends BasePromoService {
                     ObjectMapper m = new ObjectMapper();
                     Coupons coupons=new Coupons(promos.coupons);
                     String sCoupons=m.writeValueAsString(coupons);
-                    receipt.setComment(sCoupons);
+                    // receipt.setComment(sCoupons);
 
                     setTransactionAdditionalField(receipt,com.trc.ccopromo.models.Constants.TRC_COUPONS,sCoupons);
                 }
@@ -210,6 +213,7 @@ public class SalesService extends BasePromoService {
             ),Collectors.toList()));
 
        
+        //Issued Coupons
         var sCoupons=getTransactionAdditionalField(receipt,com.trc.ccopromo.models.Constants.TRC_COUPONS);
         if(sCoupons!=null)
         {
@@ -217,10 +221,28 @@ public class SalesService extends BasePromoService {
             var mapper = new ObjectMapper();
             var coupons=mapper.readValue(sCoupons,Coupons.class);
             requestObj.data.coupons=coupons.coupons;
+
+            for (Coupon coupon : requestObj.data.coupons) {
+                if(coupon.ispercent)
+                {
+                    coupon.discount=BigDecimal.valueOf(coupon.discount/100*receipt.getPaymentGrossAmountWithoutReceiptDiscount().doubleValue()).setScale(2,RoundingMode.HALF_UP).doubleValue();
+                }
+            }
             
         }
-
         logger.info(sCoupons);
+
+        //Redeemed coupons
+        sCoupons=getTransactionAdditionalField(receipt,com.trc.ccopromo.models.Constants.TRC_REDEEM_COUPONS);
+        if(sCoupons!=null)
+        {
+            var mapper = new ObjectMapper();
+            var coupons=mapper.readValue(sCoupons,Coupons.class);
+            requestObj.data.redeemed_coupons=coupons.coupons;
+
+        }
+
+
         var promos=webPromoService.PostTransaction(requestObj);
         var mapper = new ObjectMapper();
         for (int i = 0; i < promos.storedPromos.size(); i++) {
@@ -266,7 +288,7 @@ public class SalesService extends BasePromoService {
 
     
 
-    public static String getTransactiontAdditionalField(ReceiptPrintDTO receipt,String fieldName)
+    public static String getDTOTransactiontAdditionalField(ReceiptPrintDTO receipt,String fieldName)
         {
             AdditionalFieldDTO additionalField = receipt.getAdditionalField(fieldName);
             if(additionalField==null)
@@ -328,27 +350,7 @@ public class SalesService extends BasePromoService {
 
             
             // receiptprint.getId()
-            String couponsField=getTransactiontAdditionalField(receiptprint,com.trc.ccopromo.models.Constants.TRC_COUPONS);
-            if(couponsField!=null)
-            {   
-                ObjectMapper m = new ObjectMapper();
-                // Coupons coupons=new Coupons(promos.coupons);
-                try {
-                    Coupons coupons= m.readValue(couponsField,Coupons.class);
-                    for (Coupon coupon : coupons.coupons) {
-                        logger.info(coupon.code);
-                        
-                    }
-                    
-
-                } catch (JsonProcessingException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-                // setTransactionAdditionalField(receipt,com.trc.ccopromo.models.Constants.TRC_COUPONS,m.writeValueAsString(coupons));
-
-                // coupons.si
-            }
+            
             
             
 
@@ -370,7 +372,62 @@ public class SalesService extends BasePromoService {
                 }
                 
             }
+
             rootMap.put("trcPromos", promos);
+
+            //Issued coupons
+            
+            String couponsField=getDTOTransactiontAdditionalField(receiptprint,com.trc.ccopromo.models.Constants.TRC_COUPONS);
+            if(couponsField!=null)
+            {   
+                ObjectMapper m = new ObjectMapper();
+                try {
+                    Coupons issuedcoupons= m.readValue(couponsField,Coupons.class);
+                    if(issuedcoupons!=null)
+                        if(issuedcoupons.coupons!=null)
+                            if(issuedcoupons.coupons.size()>0)
+                            {
+                                // receiptprint.getPaymentGrossAmountWithoutReceiptDiscount()
+                                // coupon.discount=BigDecimal.valueOf(coupon.discount/100*receipt.getPaymentGrossAmountWithoutReceiptDiscount().doubleValue()).setScale(2,RoundingMode.HALF_UP).doubleValue();
+
+                                List<com.trc.ccopromo.models.receipt.Coupon> issued=issuedcoupons.coupons.stream()
+                                .map(coupon->new com.trc.ccopromo.models.receipt.Coupon(coupon.code,
+                                BigDecimal.valueOf(coupon.discount/100*receiptprint.getPaymentGrossAmountWithoutReceiptDiscount()).setScale(2,RoundingMode.HALF_UP).doubleValue()
+                                // ,coupon.discount
+                                )).collect(Collectors.toList());
+                                rootMap.put("trcIssuedCoupons", issued);
+                            }
+
+                    
+
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                }
+            }
+            //Redeemed Coupons
+            couponsField=getDTOTransactiontAdditionalField(receiptprint,com.trc.ccopromo.models.Constants.TRC_REDEEM_COUPONS);
+            if(couponsField!=null)
+            {   
+                ObjectMapper m = new ObjectMapper();
+                try {
+                    Coupons redeemcoupons= m.readValue(couponsField,Coupons.class);
+                    if(redeemcoupons!=null)
+                        if(redeemcoupons.coupons!=null)
+                            if(redeemcoupons.coupons.size()>0)
+
+                    rootMap.put("trcRedeemCoupons", redeemcoupons.coupons);
+
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                }
+            }
+
+
+
+
+            
+            // com.trc.ccopromo.models.receipt.Coupon
+            
             
             
             // for (AdditionalFieldDTO addField : receiptprint.getAdditionalFields()) {
@@ -382,7 +439,70 @@ public class SalesService extends BasePromoService {
             // }
         }
     }
+    
+    public boolean ScanPromoCoupon(ReceiptEntity receipt,String barcode) throws IOException, InterruptedException, URISyntaxException
+    {
+        
+        var response=webPromoService.GetCoupon(barcode);
+        
+        if(response.discount!=null)
+        {
+            //save Coupon into coupons list
+            Coupons coupons=new Coupons();
+            coupons.coupons=new ArrayList<>();
+            var sCoupons=getTransactionAdditionalField(receipt,com.trc.ccopromo.models.Constants.TRC_REDEEM_COUPONS);
+            var mapper = new ObjectMapper();
+            if(sCoupons!=null)
+            {
+                
+                coupons=mapper.readValue(sCoupons,Coupons.class);
+            }
 
+            if(!coupons.coupons.stream().anyMatch(a->a.code.equalsIgnoreCase(barcode)))
+            {
+                Coupon coupon=new Coupon();
+                coupon.code=barcode;
+                coupon.discount=response.discount;
+                coupons.coupons.add(coupon);
+            };
+            
+            
+            //save used couponts
+            setTransactionAdditionalField(receipt,com.trc.ccopromo.models.Constants.TRC_REDEEM_COUPONS,mapper.writeValueAsString(coupons));
+
+            
+            BigDecimal discount=BigDecimal.valueOf(coupons.coupons.stream().mapToDouble(a->a.discount).sum());
+            
+            
+            //apply multiple coupons
+            receipt.setPercentageDiscount(false);
+            receipt.setDiscountAmount(discount);
+            
+//             <#list trcRedeemCoupons as coupon>
+// ${coupon.code}
+// </#list>
+
+// <#if trcRedeemCoupons??>
+// <@solid_line/>
+// REDEEMED Coupons:
+
+
+// <@solid_line/>
+// </#if>
+            
+
+            return true;
+            
+        }
+        else
+        {
+            return false;
+            // ReceiptEntity receipt = receiptPosService.findOrCreate(UserRegistry.INSTANCE.getCurrentUser(), null, true);
+            
+
+        }
+
+    }
 
     
 }

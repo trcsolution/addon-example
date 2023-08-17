@@ -13,6 +13,7 @@ import com.sap.scco.ap.pos.entity.BusinessPartnerEntity;
 import com.sap.scco.ap.pos.entity.PrintTemplateEntity;
 import com.sap.scco.ap.pos.entity.ReceiptEntity;
 import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
+import com.sap.scco.ap.pos.exception.InconsistentReceiptStateException;
 import com.sap.scco.ap.pos.service.CalculationPosService;
 import com.sap.scco.ap.pos.service.ReceiptPosService;
 import com.sap.scco.ap.pos.service.ServiceFactory;
@@ -140,6 +141,18 @@ public class SalesController {
         this.trcPromoService.OnPrintReceipt(receiptprint, template, rootMap);
         
     }
+    public boolean  ScanPromoCoupon(ReceiptEntity receipt,String barcode) throws IOException, InterruptedException, URISyntaxException{
+        return trcPromoService.ScanPromoCoupon(receipt,barcode);
+    }
+    public void CalculateCurrent() throws InconsistentReceiptStateException{
+        trcPromoService.CalculateCurrent();
+    }
+    // {
+    //     // trcPromoService
+    //     var response=webPromoService.
+    //     PostCalculationRequest(promorequest);
+
+    // }
     
     
 

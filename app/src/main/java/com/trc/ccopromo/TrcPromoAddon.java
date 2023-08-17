@@ -2,6 +2,8 @@ package com.trc.ccopromo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 import java.io.IOException;
@@ -12,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.sap.scco.ap.plugin.BasePlugin;
@@ -49,6 +52,8 @@ import com.sap.scco.ap.pos.util.ui.UIEventChannelListener;
 import com.sap.scco.ap.pos.util.ui.UIMessageBroadcaster;
 import com.sap.scco.ap.registry.UserRegistry;
 import com.sap.scco.ap.returnreceipt.ReturnReceiptObject;
+import com.sap.scco.ap.util.ExecutionContext;
+import com.sap.scco.ap.util.UIRequestContext;
 import com.sap.scco.ap.pos.service.ReceiptPosService;
 import com.sap.scco.ap.pos.service.ReturnReceiptPosService;
 import com.sap.scco.ap.pos.service.ServiceFactory;
@@ -99,6 +104,7 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
 
     // public  TransactionState transactionState;
 
+    public static TrcPromoAddon INSTANCE=null;
 
     @Override
     public String getId() {
@@ -113,7 +119,7 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
 
     @Override
     public String getVersion() {
-        return "2.4.22";
+        return "2.4.23";
     } 
     @Override
     public boolean persistPropertiesToDB() {
@@ -147,6 +153,7 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
     }
     @Override
     public void startup() {
+        INSTANCE=this;
         this.dbSession = CDBSessionFactory.instance.createSession();
         this.receiptManager = new ReceiptManager(dbSession);
         this.receiptPosService =ServiceFactory.INSTANCE.getOrCreateServiceInstance(ReceiptPosService.class,dbSession);
@@ -159,6 +166,44 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
         // transactionState=new TransactionState();
         // trcPromoController=new TrcPromoController();
 
+        // UIRequestContext ctx = ExecutionContext.getContextObject("uiRequestContext", UIRequestContext.class);
+
+        // ctx.getUserCache().
+        // getRequestData().getParameterMap().put("MyData",new String[] { "One", "Two", "Three" });
+        // pushEvent("TRC_PROMO_SET_URL","sasa");
+
+
+
+        
+
+
+
+        // Timer t = new Timer();		
+		// t.schedule(new TimerTask() {
+		// 	@Override
+		// 	public void run() {
+
+        //         UIMessageBroadcaster b = BroadcasterHolder.INSTANCE.getBroadcaster();
+        //         if(b != null) {
+                    // PluginConfig pluginConfig = new PluginConfig();
+                    
+        //             b.broadcastPluginEventForPath("TRC_PROMO_SET_URL", pluginConfig.getBaseUrl());
+        //         }		
+
+
+		// 		//Get the UIMessageBroadcaster
+		// 		// UIMessageBroadcaster bc = BroadcasterHolder.INSTANCE.getBroadcaster();
+		// 		// if(bc != null) {
+		// 		// 	//Push an event to the UI event bus
+		// 		// 	bc.broadcastPluginEventForPath("MY_PLUGIN_EVENT", "TEST");
+		// 		// }
+		// 	}
+		// }, 0, 1000);
+
+
+
+
+
         currentlyCalculating.set(false);
         notifierService.registerChangeListener(this);
         BroadcasterHolder.INSTANCE.addEventChannelListener(new UIEventChannelListener() {
@@ -166,10 +211,41 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
             public void handleEvent(String eventId, JSONObject payload) {
                 try {
                     switch (eventId) {
-                        case "TRC_APPLY_PROMOTIONS":
-                                // pushEvent("TRC_CALCULATE_PROMO",null);
-                                // CalculateCurrent();
-                            break;
+                        case "TRC_PROMO_SCAN_BARCODE":
+                        ReceiptEntity receipt = receiptPosService.findOrCreate(UserRegistry.INSTANCE.getCurrentUser(), null, true);
+                        if(receipt!=null)
+                        {
+                            // if(new SalesController(INSTANCE,dbSession).ScanPromoCoupon(payload.get("barcode").toString()))
+                            if(new SalesController(INSTANCE,dbSession).ScanPromoCoupon(receipt,payload.get("materialId").toString()))
+                            {
+                                // receipt.setDiscountPercentage(BigDecimal.valueOf(50));
+                                calculationPosService.recalculateReceipt(receipt);
+                                Misc.pushEvent("RECEIPT_REFRESH", null);
+                                return;
+                            }
+                        }
+                        pushEvent("TRC_PROMO_SCAN_BARCODE",payload);
+                        break;
+                        // case "TRC_PROMO_ADDON_INIT":
+                        // //  logger.info("Init!!!!!");
+                        //  pushEvent("TRC_PROMO_ADDON_INIT",getProperty(SPECIAL_DISCOUNT_CALC_SERVICE_URL, ""));
+                         
+                        // break;
+                        // case "SALESITEM_ADD":
+                        //  logger.info(payload.toString());
+                        // break;
+                        //  case "TRC_PROMO_COUPON_REDEEM":
+                        // var barcode=payload.get("barcode");
+                        
+                        // logger.info(barcode.toString());
+                        //         // pushEvent("TRC_CALCULATE_PROMO",null);
+                        //         // CalculateCurrent();
+                        //     break;
+
+                        // case "TRC_APPLY_PROMOTIONS":
+                        //         // pushEvent("TRC_CALCULATE_PROMO",null);
+                        //         // CalculateCurrent();
+                        //     break;
                         // case "TRC_CALCULATE_PROMO":
                         //         CalculateCurrent();
                         //     // showMessageToNewUI("ssssssss");
@@ -205,17 +281,12 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
     }
     public void onDiscountChange(com.sap.scco.ap.pos.dao.CDBSession dbSession, com.sap.scco.ap.pos.entity.ReceiptEntity receipt) {
     }
-
-
-    
     public  void onSalesItemAddedToReceipt(com.sap.scco.ap.pos.dao.CDBSession dbSession, com.sap.scco.ap.pos.entity.ReceiptEntity receipt, java.util.List<com.sap.scco.ap.pos.entity.SalesItemEntity> salesItems, java.math.BigDecimal quantity) {
         new SalesController(this,dbSession).onSalesItemAddedToReceipt(receipt, salesItems, quantity);
     }
-    
     public void onSalesItemVoided(com.sap.scco.ap.pos.dao.CDBSession dbSession, com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity salesItem) {
         new SalesController(this,dbSession).onSalesItemVoided(receipt, salesItem);
     }
-    
     public void onSalesItemUpdated(com.sap.scco.ap.pos.dao.CDBSession dbSession, com.sap.scco.ap.pos.entity.ReceiptEntity receipt, com.sap.scco.ap.pos.entity.SalesItemEntity newSalesItem, java.math.BigDecimal quantity) {
         new SalesController(this,dbSession).onSalesItemUpdated(receipt, newSalesItem);
 
@@ -355,6 +426,7 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
 
     @ListenToExit(exitName = "BasePrintJobBuilder.mergeTemplateWithData")
     public void mergeTemplateWithData(Object caller, Object[] args) {
+
         new SalesController(this,(CDBSession)args[3]).mergeTemplateWithData((ReceiptPrintDTO)args[2],(PrintTemplateEntity)args[1],(Map<String, Object>) args[0]);
     }
 
@@ -373,6 +445,19 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
     // }
 
     
+
+    public static void pushEvent(String eventName, Object payload) {
+        JSONObject oJSON = new JSONObject();
+        oJSON.put("type", "event");
+        oJSON.put("eventName", eventName);
+        if (payload != null) {
+            oJSON.put("eventPayload", payload);
+        }
+        if (BroadcasterHolder.INSTANCE.getBroadcaster() != null) {
+            BroadcasterHolder.INSTANCE.getBroadcaster().broadcastActionForPath("/ws/tech", "plugin", oJSON);
+        }
+    }
+
 
     
 }

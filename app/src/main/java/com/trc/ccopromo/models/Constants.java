@@ -18,5 +18,6 @@ public class Constants {
 
     public static String COUPON_DISCOUNT="COUPON";
     public static String TRC_COUPONS="TRC_COUPONS";
+    public static String TRC_REDEEM_COUPONS="TRC_REDEEM_COUPONS";
     // public static String PROMO_NOTE="111";
 }
