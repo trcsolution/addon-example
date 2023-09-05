@@ -25,10 +25,10 @@ Plugin.PromotionsEnginePlugin = class PromotionsEnginePlugin {
             
             handleEvent:  (event) =>  {
                 
-                // if (event.type === 'LOGIN_DONE') {
-                //     this.pluginService.backendPluginEvent('TRC_PROMO_ADDON_INIT', {});
-                // }
-                // else
+                if (event.type === 'LOGIN_DONE') {
+                    this.pluginService.backendPluginEvent('TRC_PROMO_ADDON_INIT', {});
+                }
+                else
                 // if (event.type === 'TRC_PROMO_ADDON_INIT') {
                 //     this.TRC_PROMO_SET_URL=event.getPayload()
                 //     // alert(event.getPayload());

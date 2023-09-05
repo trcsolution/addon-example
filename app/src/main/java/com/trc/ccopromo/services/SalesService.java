@@ -391,8 +391,11 @@ public class SalesService extends BasePromoService {
                                 // coupon.discount=BigDecimal.valueOf(coupon.discount/100*receipt.getPaymentGrossAmountWithoutReceiptDiscount().doubleValue()).setScale(2,RoundingMode.HALF_UP).doubleValue();
 
                                 List<com.trc.ccopromo.models.receipt.Coupon> issued=issuedcoupons.coupons.stream()
-                                .map(coupon->new com.trc.ccopromo.models.receipt.Coupon(coupon.code,
-                                BigDecimal.valueOf(coupon.discount/100*receiptprint.getPaymentGrossAmountWithoutReceiptDiscount()).setScale(2,RoundingMode.HALF_UP).doubleValue()
+                                .map(coupon->
+                                
+                                new com.trc.ccopromo.models.receipt.Coupon(coupon.code,
+                                coupon.ispercent?
+                                BigDecimal.valueOf(coupon.discount/100*receiptprint.getPaymentGrossAmountWithoutReceiptDiscount()).setScale(2,RoundingMode.HALF_UP).doubleValue():coupon.discount
                                 // ,coupon.discount
                                 )).collect(Collectors.toList());
                                 rootMap.put("trcIssuedCoupons", issued);
@@ -475,8 +478,15 @@ public class SalesService extends BasePromoService {
             
             
             //apply multiple coupons
+            // receipt.setPercentageDiscount(true);
+            // receipt.setDiscountPercentage(BigDecimal.valueOf(50));
             receipt.setPercentageDiscount(false);
-            receipt.setDiscountAmount(discount);
+            // receipt.setDiscountNetAmount(discount);
+            if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
+                receipt.setDiscountNetAmount(discount);
+                    else
+                receipt.setDiscountAmount(discount);
+            
             
 //             <#list trcRedeemCoupons as coupon>
 // ${coupon.code}

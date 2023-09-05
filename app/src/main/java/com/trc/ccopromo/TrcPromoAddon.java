@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.sap.scco.ap.configuration.ConfigurationHelper;
 import com.sap.scco.ap.plugin.BasePlugin;
 import com.sap.scco.ap.plugin.BreakExecutionException;
 import com.sap.scco.ap.plugin.annotation.ListenToExit;
@@ -31,6 +32,7 @@ import com.sap.scco.ap.pos.dao.impl.ReceiptPosDAOImpl;
 import com.sap.scco.ap.pos.dto.ReceiptPrintDTO;
 import com.sap.scco.ap.pos.entity.SalesItemEntity;
 import com.sap.scco.ap.pos.entity.SalesItemNoteEntity;
+import com.sap.scco.ap.pos.entity.TaxationMethod;
 import com.sap.scco.ap.pos.service.SalesItemNotePosService;
 import com.sap.scco.ap.pos.entity.BaseEntity.EntityActions;
 import com.sap.scco.ap.pos.entity.coupon.DiscountElementEntity;
@@ -105,6 +107,7 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
     // public  TransactionState transactionState;
 
     public static TrcPromoAddon INSTANCE=null;
+    public static boolean isUSTaxSystem=false;
 
     @Override
     public String getId() {
@@ -119,7 +122,7 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
 
     @Override
     public String getVersion() {
-        return "2.4.24";
+        return "2.4.25";
     } 
     @Override
     public boolean persistPropertiesToDB() {
@@ -162,6 +165,14 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
         this.salesItemPosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(SalesItemPosService.class,dbSession);
         this.salesItemNotePosService = ServiceFactory.INSTANCE.getOrCreateServiceInstance(SalesItemNotePosService.class,dbSession);
 
+        
+
+        isUSTaxSystem=ConfigurationHelper.INSTANCE.getCashDesk().getTaxSettings().getTaxationMethod().getCode()==TaxationMethod.TAX_JURISDICTION_BASED.getCode();
+        
+
+
+        // var ConfigurationHelper.INSTANCE.getCashDesk().getTaxSettings()
+        // logger.info("111111111111");
 
         // transactionState=new TransactionState();
         // trcPromoController=new TrcPromoController();
@@ -226,11 +237,12 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
                         }
                         pushEvent("TRC_PROMO_SCAN_BARCODE",payload);
                         break;
-                        // case "TRC_PROMO_ADDON_INIT":
-                        // //  logger.info("Init!!!!!");
+                        case "TRC_PROMO_ADDON_INIT":
+                            isUSTaxSystem=ConfigurationHelper.INSTANCE.getCashDesk().getTaxSettings().getTaxationMethod().getCode()==TaxationMethod.TAX_JURISDICTION_BASED.getCode();
+                        //  logger.info("Init!!!!!");
                         //  pushEvent("TRC_PROMO_ADDON_INIT",getProperty(SPECIAL_DISCOUNT_CALC_SERVICE_URL, ""));
                          
-                        // break;
+                        break;
                         // case "SALESITEM_ADD":
                         //  logger.info(payload.toString());
                         // break;

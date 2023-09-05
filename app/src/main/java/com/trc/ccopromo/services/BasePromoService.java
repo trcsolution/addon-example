@@ -68,7 +68,11 @@ public class BasePromoService {
 
     public void SetLineDiscount(SalesItemEntity salesItem,BigDecimal discount){
         salesItem.setPercentageDiscount(false);
-        salesItem.setDiscountAmount(discount);
+
+        if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
+                salesItem.setDiscountNetAmount(discount);
+                    else
+                salesItem.setDiscountAmount(discount);
         if(discount.compareTo(BigDecimal.ZERO)==0)
         {
             salesItem.setDiscountPurposeCode(com.trc.ccopromo.models.Constants.NONPROMO_PROMO_DISCOUNT_CODE);
