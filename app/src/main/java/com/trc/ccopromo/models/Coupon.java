@@ -8,6 +8,8 @@ public class Coupon {
     public String promoid;
     public String salestransactionid;
     public String redeemtransactionid;
+    public String expiring;
+    public String validfrom;
     
 }
 
