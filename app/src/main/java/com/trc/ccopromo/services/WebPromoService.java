@@ -35,6 +35,13 @@ public class WebPromoService {
     {
         var request = new WebRequest(addon.getPluginConfig());
         String json = request.Post("/api/Promo/ScanCoupon", new CouponRequest(barcode),false);
+        if(request.statusCode==404)//not found
+         {
+            var rslt=new CouponResponse();
+            rslt.barCode=barcode;
+            return rslt;
+         }
+
         var mapper = new ObjectMapper();
         com.trc.ccopromo.models.CouponResponse couponResp=mapper.readValue(json, com.trc.ccopromo.models.CouponResponse.class);
         return couponResp;

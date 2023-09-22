@@ -417,8 +417,12 @@ public class SalesService extends BasePromoService {
                     if(redeemcoupons!=null)
                         if(redeemcoupons.coupons!=null)
                             if(redeemcoupons.coupons.size()>0)
+                            {
+                                List<com.trc.ccopromo.models.receipt.Coupon> redcoupons= redeemcoupons.coupons.stream().map(coupon->new com.trc.ccopromo.models.receipt.Coupon(coupon.code,coupon.discount))
+                                .collect(Collectors.toList());
+                                rootMap.put("trcRedeemCoupons", redcoupons);
+                            }
 
-                    rootMap.put("trcRedeemCoupons", redeemcoupons.coupons);
 
                 } catch (JsonProcessingException e) {
                     e.printStackTrace();

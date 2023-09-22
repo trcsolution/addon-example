@@ -42,10 +42,11 @@ public class WebRequest {
     public WebRequest(PluginConfig config) {
         _config = config;
     }
-
+    public int statusCode=0;
     
     public String Post(String url,Object data,boolean showlog) throws IOException, InterruptedException,URISyntaxException 
     {
+            statusCode=0;
             String sUrl=_config.getBaseUrl().endsWith("/")?_config.getBaseUrl().substring(0,_config.getBaseUrl().length()-1):_config.getBaseUrl();
             sUrl+=url;
             URI _uri=URI.create(sUrl);
@@ -60,6 +61,7 @@ public class WebRequest {
                 builder=builder.header("Authorization","Bearer ".concat(_config.getAPIKey()));
             HttpRequest httpRequest = builder.build();
             HttpResponse<String> response= httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            statusCode=response.statusCode();
             String rslt=response.body();
             logger.info(response.body());
             logger.info(json);
@@ -68,3 +70,4 @@ public class WebRequest {
     
 
 }
+
