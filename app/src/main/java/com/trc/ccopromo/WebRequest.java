@@ -58,7 +58,8 @@ public class WebRequest {
             .uri(_uri)//URI.create(_config.getBaseUrl()+url)
             .setHeader("User-Agent", "Promotions engine plugin");
             if(_config.getSecure())
-                builder=builder.header("Authorization","Bearer ".concat(_config.getAPIKey()));
+                // builder=builder.header("Authorization","Bearer ".concat(_config.getAPIKey()));
+                builder=builder.header("X-API-KEY",_config.getAPIKey());
             HttpRequest httpRequest = builder.build();
             HttpResponse<String> response= httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             statusCode=response.statusCode();
