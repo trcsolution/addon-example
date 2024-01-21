@@ -65,14 +65,31 @@ public class BasePromoService {
         }
 
     // public Stream SalesItemEntity
-
+    public void ApplyDiscountAmount(SalesItemEntity salesItem,BigDecimal discount)
+    {
+        if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
+        {
+              logger.info("--APPLY DISCOUNT--"+discount.toString());
+              
+            var k2=salesItem.getTaxRate().doubleValue()+1;
+            logger.info("--coeficient--"+Double.toString(k2));
+            var _disc=discount.doubleValue()/k2;
+            logger.info("--_disc--"+Double.toString(_disc));
+            salesItem.setDiscountNetAmount(
+                BigDecimal.valueOf(_disc).setScale(2,RoundingMode.FLOOR)
+            );
+            logger.info("--Discount--"+BigDecimal.valueOf(_disc).setScale(2,RoundingMode.FLOOR).toString());
+        }
+        else
+        {
+            salesItem.setDiscountAmount(discount);
+        }
+    }
     public void SetLineDiscount(SalesItemEntity salesItem,BigDecimal discount){
         salesItem.setPercentageDiscount(false);
 
-        if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
-                salesItem.setDiscountNetAmount(discount);
-                    else
-                salesItem.setDiscountAmount(discount);
+        ApplyDiscountAmount(salesItem,discount);
+              
         if(discount.compareTo(BigDecimal.ZERO)==0)
         {
             salesItem.setDiscountPurposeCode(com.trc.ccopromo.models.Constants.NONPROMO_PROMO_DISCOUNT_CODE);

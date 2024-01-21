@@ -57,16 +57,11 @@ public class SalesController {
         if(IsDISCOUNT_SOURCEManual)
         {
             IsDISCOUNT_SOURCEManual=false;
-            if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
-                salesItem.setDiscountNetAmount(manualDIscountAmount);
-            else
-                salesItem.setDiscountAmount(manualDIscountAmount);
-            var item=receipt.getSalesItems().stream().filter(a->a.getKey()==salesItem.getKey()).findFirst().get();
+            //trcPromoService.ApplyDiscountAmount(salesItem, manualDIscountAmount);
+          
+            //var item=receipt.getSalesItems().stream().filter(a->a.getKey()==salesItem.getKey()).findFirst().get();
 
-            if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
-                item.setDiscountNetAmount(manualDIscountAmount);
-            else
-                item.setDiscountAmount(manualDIscountAmount);
+            trcPromoService.ApplyDiscountAmount(salesItem, manualDIscountAmount);
             trcPromoService.MarkItemAsManualDiscounted(salesItem, true);
             Misc.ClearPromo(salesItem,false);
             Misc.AddNote(salesItem, "Manually discounted");

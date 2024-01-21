@@ -486,6 +486,8 @@ public class SalesService extends BasePromoService {
             // receipt.setDiscountPercentage(BigDecimal.valueOf(50));
             receipt.setPercentageDiscount(false);
             // receipt.setDiscountNetAmount(discount);
+            //ApplyDiscountAmount(salesItem, manualDIscountAmount);
+            //receipt.setDiscountNetAmount(BigDecimal.valueof(2));
             if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
                 receipt.setDiscountNetAmount(discount);
                     else

@@ -154,10 +154,11 @@
                         // salesItem.setUnitPriceChanged(true);
     
                         salesItem.setPercentageDiscount(false);
-                        if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
-                            salesItem.setDiscountNetAmount(disc.discountAmount);
-                        else
-                            salesItem.setDiscountAmount(disc.discountAmount);
+                        Misc.ApplyDiscountAmount(salesItem,disc.discountAmount);
+                        // if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
+                        //     salesItem.setDiscountNetAmount(disc.discountAmount);
+                        // else
+                        //     salesItem.setDiscountAmount(disc.discountAmount);
             salesItem.setDiscountPurposeCode(com.trc.ccopromo.models.Constants.PROMO_DISCOUNT_CODE);
             salesItem.setMarkChanged(true);
             salesItem.setItemDiscountChanged(true);

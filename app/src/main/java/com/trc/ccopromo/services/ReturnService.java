@@ -322,10 +322,11 @@ public class ReturnService extends BasePromoService {
                         continue;
                     targetEntry.setReferenceSalesItem(null);
                      targetEntry.setUnitGrossAmount(entry.getUnitGrossAmount());
-                     if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
-                        targetEntry.setDiscountNetAmount(entry.getDiscountNetAmount().negate());
-                            else
-                        targetEntry.setDiscountAmount(entry.getDiscountAmount().negate());
+                     ApplyDiscountAmount(entry, entry.getDiscountNetAmount().negate());
+                    //  if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
+                    //     targetEntry.setDiscountNetAmount(entry.getDiscountNetAmount().negate());
+                    //         else
+                    //     targetEntry.setDiscountAmount(entry.getDiscountAmount().negate());
                     
 
                 }

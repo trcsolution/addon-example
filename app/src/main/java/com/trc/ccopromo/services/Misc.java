@@ -1,6 +1,7 @@
 package com.trc.ccopromo.services;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -106,14 +107,26 @@ public class Misc {
     
 
     
-    
+    public static void ApplyDiscountAmount(SalesItemEntity salesItem,BigDecimal discount)
+    {
+        if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
+        {
+            var k2=salesItem.getTaxRate().doubleValue()+1;
+            var _disc=discount.doubleValue()/k2;
+            salesItem.setDiscountNetAmount(
+                BigDecimal.valueOf(_disc).setScale(2,RoundingMode.FLOOR)
+            );
+        }
+        else
+        {
+            salesItem.setDiscountAmount(discount);
+        }
+    }
     public static void SetLineDiscount(SalesItemEntity salesItem,BigDecimal discount){
         salesItem.setPercentageDiscount(false);
 
-        if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
-                salesItem.setDiscountNetAmount(discount);
-                    else
-                salesItem.setDiscountAmount(discount);
+        ApplyDiscountAmount(salesItem,discount);
+        
         if(discount.compareTo(BigDecimal.ZERO)==0)
         {
             salesItem.setDiscountPurposeCode(com.trc.ccopromo.models.Constants.NONPROMO_PROMO_DISCOUNT_CODE);
