@@ -72,13 +72,18 @@ public class BasePromoService {
               logger.info("--APPLY DISCOUNT--"+discount.toString());
               
             var k2=salesItem.getTaxRate().doubleValue()+1;
-            logger.info("--coeficient--"+Double.toString(k2));
+            logger.info("--Tax--"+Double.toString(k2));
             var _disc=discount.doubleValue()/k2;
             logger.info("--_disc--"+Double.toString(_disc));
-            salesItem.setDiscountNetAmount(
-                BigDecimal.valueOf(_disc).setScale(2,RoundingMode.FLOOR)
-            );
-            logger.info("--Discount--"+BigDecimal.valueOf(_disc).setScale(2,RoundingMode.FLOOR).toString());
+            logger.info(BigDecimal.valueOf(_disc).toString());
+            BigDecimal d=BigDecimal.valueOf(_disc).setScale(2,RoundingMode.HALF_EVEN);
+            if(d.compareTo(salesItem.getNetAmount())==1)
+            {
+                d=salesItem.getNetAmount();
+            }
+            salesItem.setDiscountNetAmount(d);
+            logger.info("--APPLYED DISCOUNT--"+d.toString());
+            //logger.info("--Discount--"+d.toString());
         }
         else
         {
