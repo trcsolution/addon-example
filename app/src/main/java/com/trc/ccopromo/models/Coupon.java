@@ -10,6 +10,7 @@ public class Coupon {
     public String redeemtransactionid;
     public String expiring;
     public String validfrom;
+    public String name;
     
 }
 

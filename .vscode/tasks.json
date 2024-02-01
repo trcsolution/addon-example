@@ -10,26 +10,42 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"dependsOn": ["Build Jar","copyJarFile"]
+			"dependsOn": ["Build Gradle Project","copyJarFile"]
 		  },
-		{
-			"type": "gradle",
-			"id": "c:\\Users\\achab\\work\\CCO\\app3jarapp3",
-			"script": "jar",
-			"description": "Assembles a jar archive containing the main classes.",
+		// {
+		// 	"type": "gradle",
+		// 	"id": "c:\\Users\\achab\\work\\CCO\\app3jarapp3",
+		// 	"script": "jar",
+		// 	"description": "Assembles a jar archive containing the main classes.",
 			
-			"project": "trcpromo",
-			"buildFile": "${workspaceFolder}\\build.gradle",
-			"rootProject": "app3",
-			"projectFolder": "${workspaceFolder}",
-			"workspaceFolder": "${workspaceFolder}",
-			"args": "",
-			"javaDebug": false,
-			"problemMatcher": [
-				"$gradle"
-			],
-			"label": "Build Jar"
-		},
+		// 	"project": "trcpromo",
+		// 	"buildFile": "${workspaceFolder}\\build.gradle",
+		// 	"rootProject": "app3",
+		// 	"projectFolder": "${workspaceFolder}",
+		// 	"workspaceFolder": "${workspaceFolder}",
+		// 	"args": "",
+		// 	"javaDebug": false,
+		// 	"problemMatcher": [
+		// 		"$gradle"
+		// 	],
+		// 	"label": "Build Jar"
+		// },
+		{
+            "label": "Build Gradle Project",
+            "type": "shell",
+            "command": "gradle",
+            "args": [
+                "build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+			
+
+        },
+
 		{
 			
 			"type": "shell",

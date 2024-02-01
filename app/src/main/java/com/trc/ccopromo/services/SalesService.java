@@ -397,6 +397,9 @@ public class SalesService extends BasePromoService {
                                 coupon.ispercent?
                                 BigDecimal.valueOf(coupon.discount/100*receiptprint.getPaymentGrossAmountWithoutReceiptDiscount()).setScale(2,RoundingMode.HALF_UP).doubleValue():coupon.discount
                                 // ,coupon.discount
+                                ,coupon.name,
+                                coupon.validfrom,
+                                coupon.expiring
                                 )).collect(Collectors.toList());
                                 rootMap.put("trcIssuedCoupons", issued);
                             }
@@ -418,7 +421,7 @@ public class SalesService extends BasePromoService {
                         if(redeemcoupons.coupons!=null)
                             if(redeemcoupons.coupons.size()>0)
                             {
-                                List<com.trc.ccopromo.models.receipt.Coupon> redcoupons= redeemcoupons.coupons.stream().map(coupon->new com.trc.ccopromo.models.receipt.Coupon(coupon.code,coupon.discount))
+                                List<com.trc.ccopromo.models.receipt.Coupon> redcoupons= redeemcoupons.coupons.stream().map(coupon->new com.trc.ccopromo.models.receipt.Coupon(coupon.code,coupon.discount,coupon.name,coupon.validfrom,coupon.expiring))
                                 .collect(Collectors.toList());
                                 rootMap.put("trcRedeemCoupons", redcoupons);
                             }

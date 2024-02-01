@@ -210,7 +210,10 @@ public class Misc {
                 receipt.getSalesItems().stream().filter(a -> !a.getStatus().equals("3") &&  a.getMaterial() != null
                 //&& a.getDiscountElements().isEmpty()
                 ).map(item -> 
-                    new com.trc.ccopromo.models.PromoRequestItem(item.getId(),item.getMaterial().getArticleGroup().getId(),item.getQuantity().intValue(),item.getUnitGrossAmount().doubleValue())
+                    new com.trc.ccopromo.models.PromoRequestItem(item.getId(),item.getMaterial().getArticleGroup().getId(),item.getQuantity().intValue()
+                    ,(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)?item.getUnitNetAmount().doubleValue()
+                    :item.getUnitGrossAmount().doubleValue()
+                    )
                 ).collect(Collectors.toList()));
         promorequest.transactionNumber=receipt.getId();
         promorequest.refPromos=refPromos;

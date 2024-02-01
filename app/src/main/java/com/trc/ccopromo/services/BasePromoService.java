@@ -60,8 +60,12 @@ public class BasePromoService {
     }
     public BigDecimal GetLineTotal(SalesItemEntity entry,Boolean includeDiscount)
         {
-            return includeDiscount?entry.getUnitGrossAmount().multiply(entry.getQuantity()).subtract(entry.getDiscountAmount()).setScale(2,RoundingMode.HALF_UP)
-                :entry.getUnitGrossAmount().multiply(entry.getQuantity()).setScale(2,RoundingMode.HALF_UP);
+            if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
+                return includeDiscount?entry.getUnitNetAmount().multiply(entry.getQuantity()).subtract(entry.getDiscountNetAmount()).setScale(2,RoundingMode.HALF_UP)
+                    :entry.getUnitNetAmount().multiply(entry.getQuantity()).setScale(2,RoundingMode.HALF_UP);
+                else
+                return includeDiscount?entry.getUnitGrossAmount().multiply(entry.getQuantity()).subtract(entry.getDiscountAmount()).setScale(2,RoundingMode.HALF_UP)
+                    :entry.getUnitGrossAmount().multiply(entry.getQuantity()).setScale(2,RoundingMode.HALF_UP);
         }
 
     // public Stream SalesItemEntity
@@ -69,21 +73,15 @@ public class BasePromoService {
     {
         if(com.trc.ccopromo.TrcPromoAddon.isUSTaxSystem)
         {
-              logger.info("--APPLY DISCOUNT--"+discount.toString());
-              
-            var k2=salesItem.getTaxRate().doubleValue()+1;
-            logger.info("--Tax--"+Double.toString(k2));
-            var _disc=discount.doubleValue()/k2;
-            logger.info("--_disc--"+Double.toString(_disc));
-            logger.info(BigDecimal.valueOf(_disc).toString());
-            BigDecimal d=BigDecimal.valueOf(_disc).setScale(2,RoundingMode.HALF_EVEN);
-            if(d.compareTo(salesItem.getNetAmount())==1)
-            {
-                d=salesItem.getNetAmount();
-            }
-            salesItem.setDiscountNetAmount(d);
-            logger.info("--APPLYED DISCOUNT--"+d.toString());
-            //logger.info("--Discount--"+d.toString());
+
+            salesItem.setDiscountNetAmount(discount);
+            // BigDecimal subTotal=salesItem.getUnitNetAmount().multiply(salesItem.getQuantity()).subtract(discount);
+            //  BigDecimal total=subTotal.multiply(salesItem.getTaxRate().add(BigDecimal.valueOf(1)));//.setScale(2,RoundingMode.HALF_UP);
+            //  salesItem.setGrossAmount(total);
+            //  salesItem.setPaymentGrossAmount(total);
+            // logger.info("--SUBTOTAL :"+subTotal.toString());
+            // logger.info("--APPLYED DISCOUNT--"+discount.toString());
+            // logger.info("--TOTAL :"+total.toString());
         }
         else
         {
@@ -92,9 +90,7 @@ public class BasePromoService {
     }
     public void SetLineDiscount(SalesItemEntity salesItem,BigDecimal discount){
         salesItem.setPercentageDiscount(false);
-
         ApplyDiscountAmount(salesItem,discount);
-              
         if(discount.compareTo(BigDecimal.ZERO)==0)
         {
             salesItem.setDiscountPurposeCode(com.trc.ccopromo.models.Constants.NONPROMO_PROMO_DISCOUNT_CODE);
@@ -107,7 +103,6 @@ public class BasePromoService {
         }
         salesItem.setMarkChanged(true);
         salesItem.setItemDiscountChanged(true);
-        
     }
     
 
@@ -207,9 +202,20 @@ public class BasePromoService {
             //final BigDecimal customerDiscount=(customer==null?BigDecimal.ZERO:customer.getDiscountPercentage()).add(headerDiscountPercent);
 
             final BigDecimal discount=_discount;
+            long itemCount=receipt.getSalesItems().stream().filter(a->this.IsDiscountableItem(a) && items.contains(a.getId())).count();
             var salesItems=receipt.getSalesItems().stream().filter(a->this.IsDiscountableItem(a) && items.contains(a.getId()));
+            final BigDecimal[] restDisc= {_discount};
+            final BigDecimal[] hdrDisctDisc= {BigDecimal.ZERO};
+            final long[] itemPos= {0};
+            // final BigDecimal[] calcDisc= {BigDecimal.valueOf(0)};
+            // for (int i = 0; i < salesItems.count(); i++) {
+            //     var salesItem=salesItems.;
+            // }
+            
+            
             salesItems.forEach(salesItem->
             {
+                
                 BigDecimal tineTotal=GetLineTotal(salesItem, false);
                 BigDecimal k=BigDecimal.valueOf(tineTotal.doubleValue()/totalAmount.doubleValue());
                  
@@ -227,17 +233,48 @@ public class BasePromoService {
                         tineTotal.subtract(linediscount).multiply(headerDiscountPercent).divide(BigDecimal.valueOf(100))
                     );
                 }
-
                 if(!IsManualDiscounted(salesItem) && !HasCoupon(salesItem))
                 {
-                    salesItem.setPaymentGrossAmountWithoutReceiptDiscount(tineTotal.subtract(linediscount));
+                    // restDisc[0]=restDisc[0].subtract(
+
+                    //     linediscount.subtract(linediscount.setScale(2,RoundingMode.HALF_UP))
+                    // );
+                    // if(linediscount.compareTo(linediscount.setScale(2,RoundingMode.HALF_UP))!=0)
+                    //     hdrDisctDisc[0]=hdrDisctDisc[0].add(linediscount.subtract(linediscount.setScale(2,RoundingMode.HALF_UP)));
+                   linediscount=linediscount.setScale(2,RoundingMode.HALF_EVEN);
+
+                    itemPos[0]++;
+                    if(itemPos[0]==itemCount)
+                    {
+                        linediscount=restDisc[0];
+                    }
+                    
+                    
+                    restDisc[0]=restDisc[0].subtract(linediscount);
+
                     SetLineDiscount(salesItem,linediscount);
+
+                    BigDecimal vTotal=salesItem.getGrossAmount();
+                    logger.info("GROSS:"+vTotal.toString());
                     salesItem.setUnitPriceChanged(true);
+                    salesItem.setItemDiscountChanged(true);
                     Misc.AddNote(salesItem,  "Promo:"+String.valueOf(PromoId));
                     MarkAsPromo(salesItem,Integer.toString(PromoId));
+                    // salesItem.setPaymentGrossAmountWithoutReceiptDiscount(BigDecimal.valueOf(3));
+                    // salesItem.setPaymentNetAmount(BigDecimal.valueOf(3));
+                    // salesItem.setPaymentNetAmountWithoutReceiptDiscount(BigDecimal.valueOf(4));
                     
                 }
             });
+
+            
+            // if(hdrDisctDisc[0].compareTo(BigDecimal.ZERO)!=0)
+            // {
+            //     receipt.setPercentageDiscount(false);
+            //     receipt.setDiscountNetAmount(hdrDisctDisc[0]);
+            // }
+
+            // receipt.setDiscountAmount(BigDecimal.valueOf(0.01));
     
         }
 
