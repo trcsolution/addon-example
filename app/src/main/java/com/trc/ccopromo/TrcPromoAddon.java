@@ -439,6 +439,9 @@ public class TrcPromoAddon extends BasePlugin implements ReceiptChangeListener {
     @ListenToExit(exitName = "BasePrintJobBuilder.mergeTemplateWithData")
     public void mergeTemplateWithData(Object caller, Object[] args) {
 
+        var receipt=(ReceiptPrintDTO)args[2];
+        
+
         new SalesController(this,(CDBSession)args[3]).mergeTemplateWithData((ReceiptPrintDTO)args[2],(PrintTemplateEntity)args[1],(Map<String, Object>) args[0]);
     }
 
