@@ -23,7 +23,7 @@ repositories {
 }
 
 dependencies {
-        implementation("com.sap.customercheckout:ENV:2.16.2")
+        implementation("com.sap.customercheckout:ENV:2.17.3")
         implementation("com.google.code.gson:gson:2.10");
     // This dependency is used by the application.
     implementation("com.google.guava:guava:29.0-jre")
